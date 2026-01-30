@@ -1,0 +1,9 @@
+{
+  "name": "Garza International ROI Calculator",
+  "description": "A comprehensive real estate development dashboard for ROI calculation, financial forecasting, and AI-powered market analysis and visualization.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
