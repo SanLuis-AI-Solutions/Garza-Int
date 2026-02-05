@@ -15,6 +15,9 @@ const parseCsv = (value: string | undefined) =>
 const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [approvalLoading, setApprovalLoading] = useState(false);
+  const [approved, setApproved] = useState<boolean | null>(null);
+  const [approvalError, setApprovalError] = useState<string | null>(null);
 
   const allowedEmails = useMemo(
     () => parseCsv(import.meta.env.VITE_AUTH_ALLOWED_EMAILS as string | undefined),
@@ -58,17 +61,49 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
     if (!supabase) return;
     if (!session?.user?.email) return;
 
-    if (allowedEmails.length === 0 && !allowedDomain) return;
+    // Optional client-side allowlist (extra guardrail, not primary enforcement).
+    if (allowedEmails.length > 0 || allowedDomain) {
+      const email = session.user.email.toLowerCase();
+      const emailAllowed =
+        allowedEmails.length > 0 ? allowedEmails.map((e) => e.toLowerCase()).includes(email) : true;
+      const domainAllowed = allowedDomain ? email.endsWith(`@${allowedDomain.toLowerCase()}`) : true;
 
-    const email = session.user.email.toLowerCase();
-    const emailAllowed =
-      allowedEmails.length > 0 ? allowedEmails.map((e) => e.toLowerCase()).includes(email) : true;
-    const domainAllowed = allowedDomain ? email.endsWith(`@${allowedDomain.toLowerCase()}`) : true;
-
-    if (!emailAllowed || !domainAllowed) {
-      supabase.auth.signOut();
+      if (!emailAllowed || !domainAllowed) {
+        supabase.auth.signOut();
+      }
     }
   }, [session, allowedEmails, allowedDomain]);
+
+  const checkApproval = async (activeSession: Session) => {
+    if (!supabase) return;
+    setApprovalError(null);
+    setApprovalLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('approved_emails')
+        .select('approved')
+        .maybeSingle();
+
+      if (error) throw error;
+      setApproved(Boolean(data?.approved));
+    } catch (err: any) {
+      setApproved(false);
+      setApprovalError(err?.message ?? 'Approval check failed');
+    } finally {
+      setApprovalLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!supabase) return;
+    if (!session) {
+      setApproved(null);
+      setApprovalError(null);
+      setApprovalLoading(false);
+      return;
+    }
+    checkApproval(session);
+  }, [session]);
 
   if (!isSupabaseConfigured) {
     return (
@@ -109,6 +144,28 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
     return <Login />;
   }
 
+  if (approvalLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-600">
+        Checking access…
+      </div>
+    );
+  }
+
+  if (!approved) {
+    return (
+      <PendingApproval
+        email={session.user.email ?? ''}
+        error={approvalError}
+        onRefresh={() => checkApproval(session)}
+        onSignOut={async () => {
+          if (!supabase) return;
+          await supabase.auth.signOut();
+        }}
+      />
+    );
+  }
+
   return <>{children({ session })}</>;
 };
 
@@ -116,6 +173,7 @@ const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState<'password' | 'magic'>('password');
+  const [isSignUp, setIsSignUp] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -153,6 +211,17 @@ const Login: React.FC = () => {
         });
         if (signInError) throw signInError;
         setMessage('Check your email for the sign-in link.');
+        return;
+      }
+
+      if (isSignUp) {
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: window.location.origin },
+        });
+        if (signUpError) throw signUpError;
+        setMessage('Account created. You may need to confirm your email, then wait for approval.');
         return;
       }
 
@@ -259,14 +328,71 @@ const Login: React.FC = () => {
               disabled={submitting}
               className="w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-2.5"
             >
-              {submitting ? 'Signing in…' : 'Sign In'}
+              {submitting ? 'Working…' : isSignUp ? 'Create Account' : 'Sign In'}
             </button>
           </form>
+
+          {mode === 'password' && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignUp((v) => !v);
+                setError(null);
+                setMessage(null);
+              }}
+              className="mt-4 w-full text-sm text-slate-700 hover:text-slate-900"
+            >
+              {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Create one'}
+            </button>
+          )}
 
           <p className="mt-4 text-xs text-slate-500">
             If you do not have access, contact the administrator to be added.
           </p>
         </div>
+      </div>
+    </div>
+  );
+};
+
+const PendingApproval: React.FC<{
+  email: string;
+  error: string | null;
+  onRefresh: () => void;
+  onSignOut: () => Promise<void>;
+}> = ({ email, error, onRefresh, onSignOut }) => {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-6">
+      <div className="w-full max-w-lg bg-white border border-slate-200 rounded-2xl shadow-sm p-8">
+        <h1 className="text-xl font-bold text-slate-900">Pending Approval</h1>
+        <p className="mt-2 text-sm text-slate-600">
+          Your account <span className="font-medium text-slate-900">{email}</span> is signed in, but it has not been
+          approved to access the dashboard yet.
+        </p>
+        {error && (
+          <div className="mt-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            {error}
+          </div>
+        )}
+        <div className="mt-6 flex gap-3">
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="flex-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium py-2.5"
+          >
+            Check Again
+          </button>
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="flex-1 rounded-lg bg-white hover:bg-slate-50 text-slate-800 font-medium py-2.5 border border-slate-200"
+          >
+            Sign Out
+          </button>
+        </div>
+        <p className="mt-4 text-xs text-slate-500">
+          Admin approval is required. Once approved, click “Check Again” or refresh the page.
+        </p>
       </div>
     </div>
   );
