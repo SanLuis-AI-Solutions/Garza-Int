@@ -172,28 +172,10 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [mode, setMode] = useState<'password' | 'magic'>('password');
   const [isSignUp, setIsSignUp] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-
-  const signInWithGoogle = async () => {
-    if (!supabase) return;
-    setError(null);
-    setMessage(null);
-    setSubmitting(true);
-    try {
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: window.location.origin },
-      });
-      if (oauthError) throw oauthError;
-    } catch (err: any) {
-      setError(err?.message ?? 'Google sign-in failed');
-      setSubmitting(false);
-    }
-  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -204,16 +186,6 @@ const Login: React.FC = () => {
     setSubmitting(true);
 
     try {
-      if (mode === 'magic') {
-        const { error: signInError } = await supabase.auth.signInWithOtp({
-          email,
-          options: { emailRedirectTo: window.location.origin },
-        });
-        if (signInError) throw signInError;
-        setMessage('Check your email for the sign-in link.');
-        return;
-      }
-
       if (isSignUp) {
         const { error: signUpError } = await supabase.auth.signUp({
           email,
@@ -244,46 +216,6 @@ const Login: React.FC = () => {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Garza ROI Dashboard</h1>
           <p className="mt-1 text-sm text-slate-600">Sign in to access the calculator and analysis tools.</p>
 
-          <button
-            type="button"
-            onClick={signInWithGoogle}
-            disabled={submitting}
-            className="mt-6 w-full rounded-lg bg-white hover:bg-slate-50 disabled:opacity-60 text-slate-800 font-medium py-2.5 border border-slate-200"
-          >
-            Continue with Google
-          </button>
-
-          <div className="mt-5 flex items-center gap-3">
-            <div className="h-px bg-slate-200 flex-1" />
-            <div className="text-xs text-slate-500">or</div>
-            <div className="h-px bg-slate-200 flex-1" />
-          </div>
-
-          <div className="mt-6 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setMode('password')}
-              className={`px-3 py-2 rounded-lg text-sm border ${
-                mode === 'password'
-                  ? 'bg-slate-900 text-white border-slate-900'
-                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              Email + Password
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('magic')}
-              className={`px-3 py-2 rounded-lg text-sm border ${
-                mode === 'magic'
-                  ? 'bg-slate-900 text-white border-slate-900'
-                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              Magic Link
-            </button>
-          </div>
-
           <form onSubmit={onSubmit} className="mt-6 space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700">Email</label>
@@ -298,19 +230,17 @@ const Login: React.FC = () => {
               />
             </div>
 
-            {mode === 'password' && (
-              <div>
-                <label className="block text-sm font-medium text-slate-700">Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="current-password"
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-            )}
+            <div>
+              <label className="block text-sm font-medium text-slate-700">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
 
             {error && (
               <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
@@ -332,19 +262,17 @@ const Login: React.FC = () => {
             </button>
           </form>
 
-          {mode === 'password' && (
-            <button
-              type="button"
-              onClick={() => {
-                setIsSignUp((v) => !v);
-                setError(null);
-                setMessage(null);
-              }}
-              className="mt-4 w-full text-sm text-slate-700 hover:text-slate-900"
-            >
-              {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Create one'}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => {
+              setIsSignUp((v) => !v);
+              setError(null);
+              setMessage(null);
+            }}
+            className="mt-4 w-full text-sm text-slate-700 hover:text-slate-900"
+          >
+            {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Create one'}
+          </button>
 
           <p className="mt-4 text-xs text-slate-500">
             If you do not have access, contact the administrator to be added.
