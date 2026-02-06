@@ -100,6 +100,8 @@ export const ProjectProvider: React.FC<{ session: Session; children: React.React
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProjectId, setActiveProjectIdState] = useState<string | null>(() => {
     try {
+      const fromUrl = new URLSearchParams(window.location.search).get('project');
+      if (fromUrl) return fromUrl;
       return localStorage.getItem(STORAGE_KEY);
     } catch {
       return null;

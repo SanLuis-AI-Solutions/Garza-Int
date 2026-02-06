@@ -25,7 +25,6 @@ type DashboardAppProps = {
 const ADMIN_EMAIL = 'contact@sanluisai.com';
 
 const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
-  const [activeTab, setActiveTab] = useState<AppTab>(AppTab.DASHBOARD);
   const [aiReady, setAiReady] = useState<boolean>(hasGeminiKey);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -34,6 +33,44 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
 
   const { loading, error, projects, activeProject, results, setActiveProjectId, createNewProject, removeProject, updateInputs } =
     useProjects();
+
+  const isValidTab = (tab: string): tab is AppTab =>
+    tab === AppTab.DASHBOARD ||
+    tab === AppTab.INPUTS ||
+    tab === AppTab.SPREADSHEET ||
+    tab === AppTab.MARKET ||
+    tab === AppTab.VISUALIZER ||
+    tab === AppTab.ADMIN;
+
+  const initialTab = (() => {
+    try {
+      const t = new URLSearchParams(window.location.search).get('tab');
+      if (!t || !isValidTab(t)) return AppTab.DASHBOARD;
+      if (t === AppTab.VISUALIZER && !enableVisualizer) return AppTab.DASHBOARD;
+      if (t === AppTab.ADMIN && !isAdmin) return AppTab.DASHBOARD;
+      return t;
+    } catch {
+      return AppTab.DASHBOARD;
+    }
+  })();
+
+  const [activeTab, setActiveTab] = useState<AppTab>(initialTab);
+
+  const syncUrl = (args: { tab?: AppTab; projectId?: string | null }, mode: 'replace' | 'push' = 'replace') => {
+    try {
+      const url = new URL(window.location.href);
+      const tab = args.tab ?? activeTab;
+      const pid = args.projectId !== undefined ? args.projectId : activeProject?.id ?? null;
+      url.searchParams.set('tab', tab);
+      if (pid) url.searchParams.set('project', pid);
+      else url.searchParams.delete('project');
+      const next = url.pathname + url.search + url.hash;
+      if (mode === 'push') window.history.pushState({}, '', next);
+      else window.history.replaceState({}, '', next);
+    } catch {
+      // ignore
+    }
+  };
 
   // Check API Key Selection for Paid Features (Veo/High-Quality Image)
   useEffect(() => {
@@ -72,6 +109,34 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
     if (!isAdmin && activeTab === AppTab.ADMIN) setActiveTab(AppTab.DASHBOARD);
   }, [enableVisualizer, isAdmin, activeTab]);
 
+  // Back/forward navigation should restore tab + project selection.
+  useEffect(() => {
+    const onPop = () => {
+      try {
+        const sp = new URLSearchParams(window.location.search);
+        const t = sp.get('tab');
+        const pid = sp.get('project');
+
+        if (t && isValidTab(t)) {
+          if (t === AppTab.VISUALIZER && !enableVisualizer) setActiveTab(AppTab.DASHBOARD);
+          else if (t === AppTab.ADMIN && !isAdmin) setActiveTab(AppTab.DASHBOARD);
+          else setActiveTab(t);
+        }
+        if (pid) setActiveProjectId(pid);
+      } catch {
+        // ignore
+      }
+    };
+
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [enableVisualizer, isAdmin, setActiveProjectId]);
+
+  // Keep URL in sync (bookmark/share) without spamming history.
+  useEffect(() => {
+    syncUrl({ tab: activeTab, projectId: activeProject?.id ?? null }, 'replace');
+  }, [activeTab, activeProject?.id]);
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
       {/* Sidebar Navigation */}
@@ -92,7 +157,10 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
           {navItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => {
+                setActiveTab(item.id);
+                syncUrl({ tab: item.id }, 'push');
+              }}
               className={`gi-nav-item ${activeTab === item.id ? 'gi-nav-item--active' : ''}`}
             >
               <item.icon size={20} />
@@ -145,7 +213,10 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
             <ProjectSwitcher
               projects={projects}
               activeProject={activeProject}
-              onSelect={setActiveProjectId}
+              onSelect={(id) => {
+                setActiveProjectId(id);
+                syncUrl({ projectId: id }, 'push');
+              }}
               onNew={() => setNewProjectOpen(true)}
               onDelete={removeProject}
             />
