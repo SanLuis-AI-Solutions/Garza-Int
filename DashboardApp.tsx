@@ -74,7 +74,13 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
       {/* Sidebar Navigation */}
       <aside className="w-full md:w-[280px] gi-sidebar text-white flex-shrink-0">
         <div className="p-6 border-b border-white/10">
-          <img src="/garza-logo.png" alt="Garza International Properties" className="h-7 w-auto mb-3" />
+          <img
+            src="/garza-logo.png"
+            alt="Garza International Properties"
+            width={2500}
+            height={1000}
+            className="h-7 w-auto mb-3"
+          />
           <h1 className="text-xl font-bold tracking-tight gi-serif">Garza International</h1>
           <p className="text-xs gi-muted mt-1">Real Estate Intelligence</p>
         </div>
@@ -111,7 +117,13 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
         <header className="gi-topbar px-6 md:px-8 py-5 flex justify-between items-center sticky top-0 z-10">
           <div className="flex items-center gap-3">
             <div className="hidden sm:inline-flex items-center justify-center rounded-xl bg-white/5 border border-white/10 px-3 py-2">
-              <img src="/garza-logo.png" alt="Garza International Properties" className="h-5 w-auto" />
+              <img
+                src="/garza-logo.png"
+                alt="Garza International Properties"
+                width={2500}
+                height={1000}
+                className="h-5 w-auto"
+              />
             </div>
             <div className="flex items-center gap-3">
               <h2 className="text-2xl font-bold gi-serif">{navItems.find((n) => n.id === activeTab)?.label}</h2>

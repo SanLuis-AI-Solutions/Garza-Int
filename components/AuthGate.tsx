@@ -226,7 +226,13 @@ const Login: React.FC = () => {
       <div className="w-full max-w-md">
         <div className="gi-card p-8">
           <div className="inline-flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 px-4 py-3 mb-4">
-            <img src="/garza-logo.png" alt="Garza International Properties" className="h-8 w-auto" />
+            <img
+              src="/garza-logo.png"
+              alt="Garza International Properties"
+              width={2500}
+              height={1000}
+              className="h-8 w-auto"
+            />
           </div>
           <h1 className="text-2xl font-bold tracking-tight gi-serif">Garza ROI Dashboard</h1>
           <p className="mt-1 text-sm gi-muted">Sign in to access the calculator and analysis tools.</p>
