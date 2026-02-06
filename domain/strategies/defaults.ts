@@ -37,6 +37,8 @@ export const defaultLandlordInputs = (): LandlordInputs => ({
   other_income: 0,
   vacancy_rate: 6,
   annual_appreciation: 3,
+  rent_growth_percent: 3,
+  expense_growth_percent: 2,
   property_management_percent: 9,
   property_taxes_annual: 4500,
   landlord_insurance_annual: 1600,

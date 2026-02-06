@@ -46,6 +46,8 @@ export type LandlordInputs = {
   other_income: number;
   vacancy_rate: number;
   annual_appreciation: number;
+  rent_growth_percent: number;
+  expense_growth_percent: number;
   property_management_percent: number;
   property_taxes_annual: number;
   landlord_insurance_annual: number;

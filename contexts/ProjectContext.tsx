@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import type { InvestmentStrategy, Project, StrategyInputs } from '../domain/strategies/types';
+import type { DeveloperInputs, FlipperInputs, InvestmentStrategy, LandlordInputs, Project, StrategyInputs } from '../domain/strategies/types';
 import { calculateProject } from '../domain/strategies';
 import { createProject, deleteProject, listProjects, updateProject } from '../services/projectsService';
 import { defaultDeveloperInputs, defaultFlipperInputs, defaultLandlordInputs } from '../domain/strategies/defaults';
@@ -37,6 +37,60 @@ const pickDefaults = (strategy: InvestmentStrategy): StrategyInputs => {
   }
 };
 
+const normalizeInputs = (strategy: InvestmentStrategy, inputs: StrategyInputs): StrategyInputs => {
+  // Merge defaults into stored inputs so new fields can be introduced safely without breaking existing projects.
+  switch (strategy) {
+    case 'DEVELOPER': {
+      const d = defaultDeveloperInputs();
+      const s = inputs as any as Partial<DeveloperInputs>;
+      return {
+        ...d,
+        ...s,
+        custom: {
+          ...d.custom,
+          ...(s.custom ?? {}),
+          acquisition_soft: s.custom?.acquisition_soft ?? d.custom?.acquisition_soft,
+          hard_costs: s.custom?.hard_costs ?? d.custom?.hard_costs,
+          financing: s.custom?.financing ?? d.custom?.financing,
+          carrying: s.custom?.carrying ?? d.custom?.carrying,
+          exit: s.custom?.exit ?? d.custom?.exit,
+        },
+      };
+    }
+    case 'LANDLORD': {
+      const d = defaultLandlordInputs();
+      const s = inputs as any as Partial<LandlordInputs>;
+      return {
+        ...d,
+        ...s,
+        custom: {
+          ...d.custom,
+          ...(s.custom ?? {}),
+          acquisition: s.custom?.acquisition ?? d.custom?.acquisition,
+          opex: s.custom?.opex ?? d.custom?.opex,
+        },
+      };
+    }
+    case 'FLIPPER': {
+      const d = defaultFlipperInputs();
+      const s = inputs as any as Partial<FlipperInputs>;
+      return {
+        ...d,
+        ...s,
+        custom: {
+          ...d.custom,
+          ...(s.custom ?? {}),
+          acquisition: s.custom?.acquisition ?? d.custom?.acquisition,
+          renovation: s.custom?.renovation ?? d.custom?.renovation,
+          financing: s.custom?.financing ?? d.custom?.financing,
+          carrying: s.custom?.carrying ?? d.custom?.carrying,
+          exit: s.custom?.exit ?? d.custom?.exit,
+        },
+      };
+    }
+  }
+};
+
 export const ProjectProvider: React.FC<{ session: Session; children: React.ReactNode }> = ({
   session,
   children,
@@ -65,7 +119,8 @@ export const ProjectProvider: React.FC<{ session: Session; children: React.React
     setLoading(true);
     try {
       const items = await listProjects();
-      setProjects(items);
+      const normalized = items.map((p) => ({ ...p, inputs: normalizeInputs(p.strategy, p.inputs as any) }));
+      setProjects(normalized);
 
       // If current active is missing, fall back to first.
       const nextActive = items.find((p) => p.id === activeProjectId) ? activeProjectId : items[0]?.id ?? null;
@@ -189,4 +244,3 @@ export const useProjects = () => {
   if (!ctx) throw new Error('useProjects must be used within ProjectProvider');
   return ctx;
 };
-

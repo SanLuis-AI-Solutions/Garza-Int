@@ -112,6 +112,8 @@
         "other_income": { "type": "number", "minimum": 0 },
         "vacancy_rate": { "type": "number", "minimum": 0, "maximum": 50 },
         "annual_appreciation": { "type": "number", "minimum": -20, "maximum": 50 },
+        "rent_growth_percent": { "type": "number", "minimum": -20, "maximum": 50 },
+        "expense_growth_percent": { "type": "number", "minimum": -20, "maximum": 50 },
         "property_management_percent": { "type": "number", "minimum": 0, "maximum": 30 },
         "property_taxes_annual": { "type": "number", "minimum": 0 },
         "landlord_insurance_annual": { "type": "number", "minimum": 0 },

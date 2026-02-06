@@ -90,6 +90,13 @@ const LandlordInputForm: React.FC<{
             onChange={(v) => set('annual_appreciation', v)}
             help="Default 3%"
           />
+          <NumberField
+            label="Rent Growth (Annual)"
+            suffix="%"
+            value={inputs.rent_growth_percent}
+            onChange={(v) => set('rent_growth_percent', v)}
+            help="Applies to rent + other income (default 3%)"
+          />
         </div>
       </SectionCard>
 
@@ -118,6 +125,13 @@ const LandlordInputForm: React.FC<{
             value={inputs.capex_reserve_percent}
             onChange={(v) => set('capex_reserve_percent', v)}
             help="Big items (roof/HVAC)"
+          />
+          <NumberField
+            label="Expense Inflation (Annual)"
+            suffix="%"
+            value={inputs.expense_growth_percent}
+            onChange={(v) => set('expense_growth_percent', v)}
+            help="Applies to fixed OpEx (tax/ins/HOA/custom)"
           />
         </div>
         <CostItemsEditor
