@@ -105,19 +105,19 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
 
   if (!supabase) {
     return (
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-slate-900">Approvals</h3>
-        <p className="mt-2 text-sm text-slate-600">Supabase is not configured.</p>
+      <div className="gi-card p-6">
+        <h3 className="text-lg font-semibold gi-serif">Approvals</h3>
+        <p className="mt-2 text-sm gi-muted">Supabase is not configured.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+    <div className="gi-card p-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">Approvals</h3>
-          <p className="mt-1 text-sm text-slate-600">
+          <h3 className="text-lg font-semibold gi-serif">Approvals</h3>
+          <p className="mt-1 text-sm gi-muted">
             Admin: <span className="font-mono">{adminEmail}</span>
           </p>
         </div>
@@ -125,7 +125,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
           type="button"
           onClick={refresh}
           disabled={loading || submitting}
-          className="px-3 py-2 rounded-lg border border-slate-200 text-sm hover:bg-slate-50 disabled:opacity-60"
+          className="px-3 py-2 gi-btn gi-btn-secondary text-sm disabled:opacity-60"
         >
           Refresh
         </button>
@@ -138,12 +138,12 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               placeholder="Search by email…"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full gi-input px-3 py-2 text-sm"
             />
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as any)}
-              className="w-full md:w-48 rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white"
+              className="w-full md:w-48 gi-input px-3 py-2 text-sm"
             >
               <option value="pending">Pending</option>
               <option value="approved">Approved</option>
@@ -152,65 +152,61 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
           </div>
 
           {error && (
-            <div className="mt-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            <div className="mt-4 text-sm gi-card border border-red-500/30 text-red-100 rounded-xl px-3 py-2">
               {error}
             </div>
           )}
           {actionMessage && (
-            <div className="mt-4 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+            <div className="mt-4 text-sm gi-card border border-green-500/30 text-green-100 rounded-xl px-3 py-2">
               {actionMessage}
             </div>
           )}
 
           <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="text-left text-slate-500 border-b border-slate-200">
-                  <th className="py-2 pr-4">Email</th>
-                  <th className="py-2 pr-4">Status</th>
-                  <th className="py-2 pr-4">Requested</th>
-                  <th className="py-2 pr-4">Approved</th>
-                  <th className="py-2">Actions</th>
+            <table className="gi-table text-sm">
+              <thead className="gi-thead">
+                <tr>
+                  <th>Email</th>
+                  <th>Status</th>
+                  <th>Requested</th>
+                  <th>Approved</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="gi-tbody">
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="py-6 text-slate-600">
+                    <td colSpan={5} className="py-6 gi-muted">
                       Loading…
                     </td>
                   </tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-6 text-slate-600">
+                    <td colSpan={5} className="py-6 gi-muted">
                       No matching rows.
                     </td>
                   </tr>
                 ) : (
                   filtered.map((r) => (
-                    <tr key={r.email} className="border-b border-slate-100">
-                      <td className="py-3 pr-4 font-mono text-slate-900">{r.email}</td>
-                      <td className="py-3 pr-4">
+                    <tr key={r.email} className="gi-trHover">
+                      <td className="font-mono text-white/90">{r.email}</td>
+                      <td>
                         <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs border ${
-                            r.approved
-                              ? 'bg-green-50 text-green-800 border-green-200'
-                              : 'bg-yellow-50 text-yellow-800 border-yellow-200'
-                          }`}
+                          className={`gi-pill text-xs ${r.approved ? 'gi-pill--ok' : 'gi-pill--warn'}`}
                         >
                           {r.approved ? 'Approved' : 'Pending'}
                         </span>
                       </td>
-                      <td className="py-3 pr-4 text-slate-600">{formatDateTime(r.created_at)}</td>
-                      <td className="py-3 pr-4 text-slate-600">{formatDateTime(r.approved_at)}</td>
-                      <td className="py-3">
+                      <td className="gi-muted">{formatDateTime(r.created_at)}</td>
+                      <td className="gi-muted">{formatDateTime(r.approved_at)}</td>
+                      <td>
                         <div className="flex flex-wrap gap-2">
                           {r.approved ? (
                             <button
                               type="button"
                               disabled={submitting}
                               onClick={() => upsertApproved(r.email, false)}
-                              className="px-2.5 py-1.5 rounded-lg text-xs border border-slate-200 hover:bg-slate-50 disabled:opacity-60"
+                              className="px-2.5 py-1.5 gi-btn gi-btn-secondary text-xs disabled:opacity-60"
                             >
                               Revoke
                             </button>
@@ -219,7 +215,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
                               type="button"
                               disabled={submitting}
                               onClick={() => upsertApproved(r.email, true)}
-                              className="px-2.5 py-1.5 rounded-lg text-xs bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-60"
+                              className="px-2.5 py-1.5 gi-btn gi-btn-primary text-xs disabled:opacity-60"
                             >
                               Approve
                             </button>
@@ -228,7 +224,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
                             type="button"
                             disabled={submitting}
                             onClick={() => remove(r.email)}
-                            className="px-2.5 py-1.5 rounded-lg text-xs border border-red-200 text-red-700 hover:bg-red-50 disabled:opacity-60"
+                            className="px-2.5 py-1.5 gi-btn gi-btn-danger text-xs disabled:opacity-60"
                           >
                             Remove
                           </button>
@@ -243,9 +239,9 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
         </div>
 
         <div className="lg:col-span-1">
-          <div className="border border-slate-200 rounded-xl p-4">
-            <h4 className="text-sm font-semibold text-slate-900">Quick Add</h4>
-            <p className="mt-1 text-xs text-slate-600">
+          <div className="gi-card-flat p-4">
+            <h4 className="text-sm font-semibold text-white/90">Quick Add</h4>
+            <p className="mt-1 text-xs gi-muted">
               Add an email and approve it immediately. This will create the row if it does not exist.
             </p>
 
@@ -254,13 +250,13 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
                 placeholder="user@company.com"
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full gi-input px-3 py-2 text-sm"
               />
               <button
                 type="button"
                 disabled={submitting || !newEmail.trim()}
                 onClick={() => upsertApproved(newEmail, true)}
-                className="w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-2.5 text-sm"
+                className="w-full gi-btn gi-btn-primary disabled:opacity-60 font-semibold py-2.5 text-sm"
               >
                 Approve Email
               </button>
@@ -273,4 +269,3 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
 };
 
 export default AdminApprovals;
-

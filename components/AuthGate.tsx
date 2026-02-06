@@ -119,14 +119,14 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
 
   if (!isSupabaseConfigured) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-6">
-        <div className="w-full max-w-lg bg-white border border-slate-200 rounded-2xl shadow-sm p-8">
-          <h1 className="text-xl font-bold text-slate-900">Authentication Not Configured</h1>
-          <p className="mt-2 text-sm text-slate-600">
+      <div className="min-h-screen flex items-center justify-center px-6">
+        <div className="w-full max-w-lg gi-card p-8">
+          <h1 className="text-xl font-bold gi-serif">Authentication Not Configured</h1>
+          <p className="mt-2 text-sm gi-muted">
             Set these Vercel environment variables (or a local <code className="font-mono">.env.local</code>) and
             redeploy:
           </p>
-          <ul className="mt-4 text-sm text-slate-700 list-disc pl-5 space-y-1">
+          <ul className="mt-4 text-sm gi-muted list-disc pl-5 space-y-1">
             <li>
               <code className="font-mono">VITE_SUPABASE_URL</code>
             </li>
@@ -134,7 +134,7 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
               <code className="font-mono">VITE_SUPABASE_ANON_KEY</code>
             </li>
           </ul>
-          <p className="mt-4 text-xs text-slate-500">
+          <p className="mt-4 text-xs gi-muted2">
             Optional allowlist:
             <span className="font-mono"> VITE_AUTH_ALLOWED_EMAILS</span>,
             <span className="font-mono"> VITE_AUTH_ALLOWED_DOMAIN</span>
@@ -146,7 +146,7 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-600">
+      <div className="min-h-screen flex items-center justify-center gi-muted">
         Loading…
       </div>
     );
@@ -158,7 +158,7 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
 
   if (approvalLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-600">
+      <div className="min-h-screen flex items-center justify-center gi-muted">
         Checking access…
       </div>
     );
@@ -222,48 +222,48 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-6">
+    <div className="min-h-screen flex items-center justify-center px-6">
       <div className="w-full max-w-md">
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8">
-          <div className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-3 mb-4">
+        <div className="gi-card p-8">
+          <div className="inline-flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 px-4 py-3 mb-4">
             <img src="/garza-logo.png" alt="Garza International Properties" className="h-8 w-auto" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Garza ROI Dashboard</h1>
-          <p className="mt-1 text-sm text-slate-600">Sign in to access the calculator and analysis tools.</p>
+          <h1 className="text-2xl font-bold tracking-tight gi-serif">Garza ROI Dashboard</h1>
+          <p className="mt-1 text-sm gi-muted">Sign in to access the calculator and analysis tools.</p>
 
           <form onSubmit={onSubmit} className="mt-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700">Email</label>
+              <label className="block text-sm font-medium text-white/90">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="mt-1 w-full gi-input px-3 py-2"
                 placeholder="you@company.com"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">Password</label>
+              <label className="block text-sm font-medium text-white/90">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="mt-1 w-full gi-input px-3 py-2"
               />
             </div>
 
             {error && (
-              <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              <div className="text-sm gi-card border border-red-500/30 text-red-100 rounded-xl px-3 py-2">
                 {error}
               </div>
             )}
             {message && (
-              <div className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+              <div className="text-sm gi-card border border-green-500/30 text-green-100 rounded-xl px-3 py-2">
                 {message}
               </div>
             )}
@@ -271,7 +271,7 @@ const Login: React.FC = () => {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-medium py-2.5"
+              className="w-full gi-btn gi-btn-primary disabled:opacity-60 font-semibold py-2.5"
             >
               {submitting ? 'Working…' : isSignUp ? 'Create Account' : 'Sign In'}
             </button>
@@ -284,12 +284,12 @@ const Login: React.FC = () => {
               setError(null);
               setMessage(null);
             }}
-            className="mt-4 w-full text-sm text-slate-700 hover:text-slate-900"
+            className="mt-4 w-full text-sm gi-muted hover:text-white/90"
           >
             {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Create one'}
           </button>
 
-          <p className="mt-4 text-xs text-slate-500">
+          <p className="mt-4 text-xs gi-muted2">
             If you do not have access, contact the administrator to be added.
           </p>
         </div>
@@ -305,15 +305,15 @@ const PendingApproval: React.FC<{
   onSignOut: () => Promise<void>;
 }> = ({ email, error, onRefresh, onSignOut }) => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-6">
-      <div className="w-full max-w-lg bg-white border border-slate-200 rounded-2xl shadow-sm p-8">
-        <h1 className="text-xl font-bold text-slate-900">Pending Approval</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Your account <span className="font-medium text-slate-900">{email}</span> is signed in, but it has not been
+    <div className="min-h-screen flex items-center justify-center px-6">
+      <div className="w-full max-w-lg gi-card p-8">
+        <h1 className="text-xl font-bold gi-serif">Pending Approval</h1>
+        <p className="mt-2 text-sm gi-muted">
+          Your account <span className="font-medium text-white/95">{email}</span> is signed in, but it has not been
           approved to access the dashboard yet.
         </p>
         {error && (
-          <div className="mt-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          <div className="mt-4 text-sm gi-card border border-red-500/30 text-red-100 rounded-xl px-3 py-2">
             {error}
           </div>
         )}
@@ -321,19 +321,19 @@ const PendingApproval: React.FC<{
           <button
             type="button"
             onClick={onRefresh}
-            className="flex-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium py-2.5"
+            className="flex-1 gi-btn gi-btn-primary font-semibold py-2.5"
           >
             Check Again
           </button>
           <button
             type="button"
             onClick={onSignOut}
-            className="flex-1 rounded-lg bg-white hover:bg-slate-50 text-slate-800 font-medium py-2.5 border border-slate-200"
+            className="flex-1 gi-btn gi-btn-secondary font-semibold py-2.5"
           >
             Sign Out
           </button>
         </div>
-        <p className="mt-4 text-xs text-slate-500">
+        <p className="mt-4 text-xs gi-muted2">
           Admin approval is required. Once approved, click “Check Again” or refresh the page.
         </p>
       </div>

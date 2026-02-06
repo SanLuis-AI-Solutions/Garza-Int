@@ -64,13 +64,13 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans text-slate-900">
+    <div className="min-h-screen flex flex-col md:flex-row">
       {/* Sidebar Navigation */}
-      <aside className="w-full md:w-64 bg-slate-900 text-white flex-shrink-0">
-        <div className="p-6 border-b border-slate-800">
+      <aside className="w-full md:w-[280px] gi-sidebar text-white flex-shrink-0">
+        <div className="p-6 border-b border-white/10">
           <img src="/garza-logo.png" alt="Garza International Properties" className="h-7 w-auto mb-3" />
-          <h1 className="text-xl font-bold tracking-tight">Garza International</h1>
-          <p className="text-xs text-slate-400 mt-1">Real Estate Intelligence</p>
+          <h1 className="text-xl font-bold tracking-tight gi-serif">Garza International</h1>
+          <p className="text-xs gi-muted mt-1">Real Estate Intelligence</p>
         </div>
 
         <nav className="p-4 space-y-1">
@@ -78,9 +78,7 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                activeTab === item.id ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-              }`}
+              className={`gi-nav-item ${activeTab === item.id ? 'gi-nav-item--active' : ''}`}
             >
               <item.icon size={20} />
               <span className="font-medium">{item.label}</span>
@@ -89,12 +87,12 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
         </nav>
 
         <div className="p-4 mt-auto">
-          <div className="text-[11px] text-slate-400 mb-2 truncate" title={session.user.email ?? undefined}>
-            Signed in as <span className="text-slate-200">{session.user.email}</span>
+          <div className="text-[11px] gi-muted mb-2 truncate" title={session.user.email ?? undefined}>
+            Signed in as <span className="text-white/90">{session.user.email}</span>
           </div>
           <button
             onClick={handleSignOut}
-            className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-xs py-2 rounded text-white border border-slate-700"
+            className="w-full flex items-center justify-center gap-2 gi-btn gi-btn-secondary text-xs py-2.5"
           >
             <LogOut className="w-4 h-4" />
             Sign out
@@ -104,12 +102,23 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
 
       {/* Main Content */}
       <main className="flex-1 h-screen overflow-y-auto">
-        <header className="bg-white border-b border-slate-200 px-8 py-5 flex justify-between items-center sticky top-0 z-10">
+        <header className="gi-topbar px-6 md:px-8 py-5 flex justify-between items-center sticky top-0 z-10">
           <div className="flex items-center gap-3">
-            <div className="hidden sm:inline-flex items-center justify-center rounded-lg bg-slate-900 px-3 py-2">
+            <div className="hidden sm:inline-flex items-center justify-center rounded-xl bg-white/5 border border-white/10 px-3 py-2">
               <img src="/garza-logo.png" alt="Garza International Properties" className="h-5 w-auto" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-800">{navItems.find((n) => n.id === activeTab)?.label}</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-2xl font-bold gi-serif">{navItems.find((n) => n.id === activeTab)?.label}</h2>
+              {activeProject && (
+                <span className="gi-pill text-xs">
+                  {activeProject.strategy === 'DEVELOPER'
+                    ? 'Developer'
+                    : activeProject.strategy === 'LANDLORD'
+                    ? 'Landlord'
+                    : 'Flipper'}
+                </span>
+              )}
+            </div>
           </div>
           <ProjectSwitcher
             projects={projects}
@@ -120,26 +129,26 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
           />
         </header>
 
-        <div className="p-8 pb-32">
+        <div className="p-6 md:p-8 pb-32">
           {loading && (
-            <div className="text-slate-600">Loading projects…</div>
+            <div className="gi-muted">Loading projects…</div>
           )}
           {!loading && error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+            <div className="gi-card px-4 py-3 text-sm border border-red-500/30 text-red-100">
               {error}
             </div>
           )}
 
           {!loading && !activeProject && (
-            <div className="max-w-2xl bg-white border border-slate-200 rounded-2xl shadow-sm p-8">
-              <h3 className="text-xl font-bold text-slate-900">Create Your First Project</h3>
-              <p className="mt-2 text-sm text-slate-600">
+            <div className="max-w-2xl gi-card p-8">
+              <h3 className="text-xl font-bold gi-serif">Create Your First Project</h3>
+              <p className="mt-2 text-sm gi-muted">
                 Choose a strategy to unlock the correct inputs, math, and dashboard.
               </p>
               <button
                 type="button"
                 onClick={() => setNewProjectOpen(true)}
-                className="mt-6 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2.5 text-sm"
+                className="mt-6 gi-btn gi-btn-primary px-4 py-2.5 text-sm font-semibold"
               >
                 New Project
               </button>

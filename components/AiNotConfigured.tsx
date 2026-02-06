@@ -25,16 +25,16 @@ const AiNotConfigured: React.FC<{
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
-      <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-      <p className="mt-2 text-sm text-slate-600">{description}</p>
+    <div className="gi-card p-6">
+      <h3 className="text-lg font-semibold gi-serif">{title}</h3>
+      <p className="mt-2 text-sm gi-muted">{description}</p>
 
       {hasAiStudio && (
         <button
           type="button"
           onClick={handleSelectKey}
           disabled={opening}
-          className="mt-4 inline-flex items-center justify-center rounded-lg bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white font-medium px-4 py-2.5 text-sm"
+          className="mt-4 inline-flex items-center justify-center gi-btn gi-btn-primary disabled:opacity-60 px-4 py-2.5 text-sm font-semibold"
         >
           {opening ? 'Opening…' : 'Select Project Key'}
         </button>
@@ -44,4 +44,3 @@ const AiNotConfigured: React.FC<{
 };
 
 export default AiNotConfigured;
-

@@ -12,15 +12,15 @@ const FlipperDetail: React.FC<{ results: FlipperResults }> = ({ results }) => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-        <h2 className="text-xl font-bold text-slate-900">Deal Detail</h2>
-        <p className="mt-1 text-sm text-slate-600">Key totals and cost drivers for the Flipper view.</p>
+      <div className="gi-card p-6">
+        <h2 className="text-xl font-bold gi-serif">Deal Detail</h2>
+        <p className="mt-1 text-sm gi-muted">Key totals and cost drivers for the Flipper view.</p>
 
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
           {rows.map((r) => (
-            <div key={r.label} className="border border-slate-200 rounded-lg p-4">
-              <div className="text-sm text-slate-500">{r.label}</div>
-              <div className="mt-1 text-lg font-semibold text-slate-900">
+            <div key={r.label} className="gi-card-flat p-4">
+              <div className="text-sm gi-muted2">{r.label}</div>
+              <div className="mt-1 text-lg font-semibold text-white/95">
                 ${r.value.toLocaleString(undefined, { maximumFractionDigits: r.label.includes('Daily') ? 2 : 0 })}
               </div>
             </div>
@@ -28,28 +28,28 @@ const FlipperDetail: React.FC<{ results: FlipperResults }> = ({ results }) => {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-        <h3 className="text-lg font-bold text-slate-900">Cost Breakdown</h3>
+      <div className="gi-card p-6">
+        <h3 className="text-lg font-bold gi-serif">Cost Breakdown</h3>
         <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="text-left text-slate-500 border-b border-slate-200">
-                <th className="py-2 pr-4">Line</th>
-                <th className="py-2 text-right">Amount</th>
+          <table className="gi-table text-sm">
+            <thead className="gi-thead">
+              <tr>
+                <th>Line</th>
+                <th style={{ textAlign: 'right' }}>Amount</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="gi-tbody">
               {results.breakdown.map((b) => (
-                <tr key={b.name} className="border-b border-slate-100">
-                  <td className="py-3 pr-4 text-slate-800">{b.name}</td>
-                  <td className="py-3 text-right font-mono text-slate-900">
+                <tr key={b.name} className="gi-trHover">
+                  <td>{b.name}</td>
+                  <td style={{ textAlign: 'right' }} className="font-mono">
                     ${b.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </td>
                 </tr>
               ))}
               <tr>
-                <td className="py-3 pr-4 font-semibold text-slate-900">Total Deal Cost</td>
-                <td className="py-3 text-right font-mono font-semibold text-slate-900">
+                <td className="font-semibold text-white/95">Total Deal Cost</td>
+                <td style={{ textAlign: 'right' }} className="font-mono font-semibold text-white/95">
                   ${results.totals.totalCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </td>
               </tr>
@@ -62,4 +62,3 @@ const FlipperDetail: React.FC<{ results: FlipperResults }> = ({ results }) => {
 };
 
 export default FlipperDetail;
-

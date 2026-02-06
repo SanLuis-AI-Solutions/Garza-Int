@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { chatWithGemini, hasGeminiKey, quickAnalysis } from '../services/geminiService';
 import { MessageCircle, X, Send, Loader2, Sparkles } from 'lucide-react';
+import { chartTheme } from './charts/theme';
 
 const AIChat: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -74,7 +75,7 @@ const AIChat: React.FC = () => {
       setLoading(true);
       try {
           const tip = await quickAnalysis("Give me one short, high-impact tip for real estate developers regarding ROI optimization.");
-          setMessages(prev => [...prev, { role: 'model', text: `💡 **Quick Tip:** ${tip}` }]);
+          setMessages(prev => [...prev, { role: 'model', text: `Quick Tip: ${tip}` }]);
           setIsOpen(true);
       } catch(e) { console.error(e) }
       setLoading(false);
@@ -87,15 +88,15 @@ const AIChat: React.FC = () => {
         {!isOpen && aiReady && (
             <button 
                 onClick={handleQuickInsight}
-                className="bg-white text-indigo-600 p-3 rounded-full shadow-lg hover:bg-indigo-50 transition-colors border border-indigo-100 mb-2"
+                className="p-3 rounded-full gi-btn gi-btn-secondary mb-2"
                 title="Get a quick tip"
             >
-                <Sparkles size={20} />
+                <Sparkles size={20} color={chartTheme.palette[1]} />
             </button>
         )}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-full shadow-lg transition-all transform hover:scale-105"
+          className="p-4 rounded-full gi-btn gi-btn-primary shadow-lg transition-transform hover:-translate-y-0.5"
         >
           {isOpen ? <X /> : <MessageCircle />}
         </button>
@@ -103,17 +104,26 @@ const AIChat: React.FC = () => {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 w-96 h-[500px] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col z-50 overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-200">
-          <div className="bg-indigo-600 p-4 text-white flex justify-between items-center">
-            <h3 className="font-semibold flex items-center"><Sparkles className="w-4 h-4 mr-2"/> Gemini Assistant</h3>
-            <button onClick={() => setIsOpen(false)} className="hover:bg-indigo-500 p-1 rounded"><X size={16}/></button>
+        <div className="fixed bottom-24 right-6 w-[min(92vw,24rem)] h-[min(70vh,520px)] gi-card flex flex-col z-50 overflow-hidden">
+          <div className="p-4 text-white flex justify-between items-center border-b border-white/10 bg-black/10">
+            <h3 className="font-semibold flex items-center gi-serif">
+              <Sparkles className="w-4 h-4 mr-2" style={{ color: chartTheme.palette[1] }} />
+              Assistant
+            </h3>
+            <button
+              onClick={() => setIsOpen(false)}
+              aria-label="Close chat"
+              className="gi-btn gi-btn-ghost gi-iconBtn"
+            >
+              <X size={16} />
+            </button>
           </div>
           
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-black/10">
             {!aiReady && (
-              <div className="bg-white border border-slate-200 rounded-lg p-3 text-sm text-slate-700">
-                <div className="font-semibold text-slate-900">AI not configured</div>
-                <div className="mt-1 text-slate-600">
+              <div className="gi-card rounded-xl p-3 text-sm">
+                <div className="font-semibold text-white/90">AI not configured</div>
+                <div className="mt-1 gi-muted">
                   Ask the admin to set <span className="font-mono">GEMINI_API_KEY</span> in Vercel and redeploy.
                   {hasAiStudio ? ' Or select a paid project key in AI Studio.' : ''}
                 </div>
@@ -122,7 +132,7 @@ const AIChat: React.FC = () => {
                     type="button"
                     onClick={handleSelectKey}
                     disabled={loading}
-                    className="mt-2 inline-flex items-center justify-center rounded-md bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white font-medium px-3 py-2 text-xs"
+                    className="mt-2 inline-flex items-center justify-center gi-btn gi-btn-primary disabled:opacity-60 px-3 py-2 text-xs font-semibold"
                   >
                     Select Project Key
                   </button>
@@ -133,8 +143,8 @@ const AIChat: React.FC = () => {
               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[80%] rounded-lg p-3 text-sm ${
                   m.role === 'user' 
-                    ? 'bg-indigo-600 text-white rounded-tr-none' 
-                    : 'bg-white text-slate-800 border border-slate-200 rounded-tl-none shadow-sm'
+                    ? 'bg-white/10 text-white rounded-tr-none border border-white/10' 
+                    : 'bg-black/10 text-white/90 border border-white/10 rounded-tl-none'
                 }`}>
                   <div className="whitespace-pre-wrap">{m.text}</div>
                 </div>
@@ -142,15 +152,15 @@ const AIChat: React.FC = () => {
             ))}
             {loading && (
               <div className="flex justify-start">
-                 <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
-                    <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
+                 <div className="bg-black/10 p-3 rounded-lg border border-white/10">
+                    <Loader2 className="w-4 h-4 animate-spin" style={{ color: chartTheme.palette[0] }} />
                  </div>
               </div>
             )}
             <div ref={bottomRef} />
           </div>
 
-          <div className="p-4 bg-white border-t border-slate-100">
+          <div className="p-4 border-t border-white/10 bg-black/10">
             <div className="flex space-x-2">
               <input
                 type="text"
@@ -158,13 +168,14 @@ const AIChat: React.FC = () => {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                 placeholder={aiReady ? "Ask anything..." : "AI not configured"}
-                className="flex-1 border-slate-200 rounded-md border px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                className="flex-1 gi-input px-3 py-2 text-sm"
                 disabled={!aiReady}
               />
               <button 
                 onClick={handleSend}
                 disabled={!aiReady || loading || !input.trim()}
-                className="bg-indigo-600 text-white p-2 rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                aria-label="Send message"
+                className="gi-btn gi-btn-primary gi-iconBtn disabled:opacity-50"
               >
                 <Send size={18} />
               </button>
