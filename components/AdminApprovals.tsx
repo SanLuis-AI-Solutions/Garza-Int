@@ -8,8 +8,6 @@ type ApprovedEmailRow = {
   approved_at: string | null;
 };
 
-const toIso = (d: Date) => d.toISOString();
-
 const formatDateTime = (value: string | null | undefined) => {
   if (!value) return '—';
   const d = new Date(value);
