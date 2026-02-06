@@ -1,10 +1,11 @@
 import React, { Suspense, useEffect, useState } from 'react';
-import { LayoutDashboard, PenTool, Table, Image as ImageIcon, Globe, LogOut, UserCheck } from 'lucide-react';
+import { Download, FileText, LayoutDashboard, PenTool, Table, Image as ImageIcon, Globe, LogOut, UserCheck } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { AppTab } from './types';
 import AiNotConfigured from './components/AiNotConfigured';
 import { supabase } from './services/supabaseClient';
 import { hasGeminiKey } from './services/geminiKey';
+import { downloadProjectReportZip, printProjectReport } from './services/reportExport';
 import { ProjectProvider, useProjects } from './contexts/ProjectContext';
 import DashboardRouter from './components/dashboards/DashboardRouter';
 import InputsRouter from './components/inputs/InputsRouter';
@@ -27,6 +28,7 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
   const [activeTab, setActiveTab] = useState<AppTab>(AppTab.DASHBOARD);
   const [aiReady, setAiReady] = useState<boolean>(hasGeminiKey);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const isAdmin = (session.user.email ?? '').toLowerCase() === ADMIN_EMAIL.toLowerCase();
   const enableVisualizer = (import.meta as any).env?.VITE_ENABLE_VISUALIZER === 'true';
 
@@ -139,13 +141,52 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
               )}
             </div>
           </div>
-          <ProjectSwitcher
-            projects={projects}
-            activeProject={activeProject}
-            onSelect={setActiveProjectId}
-            onNew={() => setNewProjectOpen(true)}
-            onDelete={removeProject}
-          />
+          <div className="flex items-center gap-3">
+            <ProjectSwitcher
+              projects={projects}
+              activeProject={activeProject}
+              onSelect={setActiveProjectId}
+              onNew={() => setNewProjectOpen(true)}
+              onDelete={removeProject}
+            />
+            <div className="hidden md:flex items-center gap-2">
+            <button
+              type="button"
+              disabled={!activeProject || !results || exporting}
+              onClick={async () => {
+                if (!activeProject || !results) return;
+                setExporting(true);
+                try {
+                  await downloadProjectReportZip({ project: activeProject, results });
+                } finally {
+                  setExporting(false);
+                }
+              }}
+              className="gi-btn gi-btn-secondary px-3 py-2 text-sm font-semibold disabled:opacity-60"
+              title="Download a ZIP with CSV + JSON report files"
+            >
+              <span className="inline-flex items-center gap-2">
+                <Download size={16} />
+                {exporting ? 'Exporting…' : 'Export Report'}
+              </span>
+            </button>
+            <button
+              type="button"
+              disabled={!activeProject || !results}
+              onClick={() => {
+                if (!activeProject || !results) return;
+                printProjectReport({ project: activeProject, results });
+              }}
+              className="gi-btn gi-btn-ghost px-3 py-2 text-sm font-semibold disabled:opacity-60"
+              title="Print (or Save as PDF)"
+            >
+              <span className="inline-flex items-center gap-2">
+                <FileText size={16} />
+                PDF
+              </span>
+            </button>
+            </div>
+          </div>
         </header>
 
         <div className="p-6 md:p-8 pb-32">

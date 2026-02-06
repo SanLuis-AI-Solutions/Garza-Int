@@ -12,6 +12,7 @@
     "lucide-react": "^0.563.0",
     "@google/genai": "^1.38.0",
     "@supabase/supabase-js": "^2.57.0",
+    "fflate": "^0.8.2",
     "recharts": "^3.7.0",
     "react-dom": "^19.2.4",
     "react": "^19.2.4"
