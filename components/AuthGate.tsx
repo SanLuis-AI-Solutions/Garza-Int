@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase } from '../services/supabaseClient';
 
@@ -188,6 +188,8 @@ const Login: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const emailId = useId();
+  const passwordId = useId();
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -239,26 +241,37 @@ const Login: React.FC = () => {
 
           <form onSubmit={onSubmit} className="mt-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-white/90">Email</label>
+              <label htmlFor={emailId} className="block text-sm font-medium text-white/90">
+                Email
+              </label>
               <input
+                id={emailId}
+                name="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 className="mt-1 w-full gi-input px-3 py-2"
                 placeholder="you@company.com"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-white/90">Password</label>
+              <label htmlFor={passwordId} className="block text-sm font-medium text-white/90">
+                Password
+              </label>
               <input
+                id={passwordId}
+                name="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                autoComplete="current-password"
+                autoComplete={isSignUp ? 'new-password' : 'current-password'}
                 className="mt-1 w-full gi-input px-3 py-2"
               />
             </div>
