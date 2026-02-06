@@ -82,6 +82,7 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
       const { data, error } = await supabase
         .from('approved_emails')
         .select('approved')
+        .eq('email', activeSession.user.email ?? '')
         .maybeSingle();
 
       if (error) throw error;
