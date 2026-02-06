@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@google/genai": "^1.38.0",
+    "@sentry/react": "^10.38.0",
     "@supabase/supabase-js": "^2.57.0",
     "fflate": "^0.8.2",
     "lucide-react": "^0.563.0",

@@ -8,6 +8,7 @@ create table if not exists public.projects (
   owner_id uuid not null references auth.users(id) on delete cascade,
   name text not null,
   strategy text not null check (strategy in ('DEVELOPER','LANDLORD','FLIPPER')),
+  environment text not null default 'production' check (environment in ('production','preview')),
   data jsonb not null,
   schema_version int not null default 1,
   created_at timestamptz not null default now(),

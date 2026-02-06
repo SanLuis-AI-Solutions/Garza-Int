@@ -1,5 +1,5 @@
 import React, { Suspense, useEffect, useState } from 'react';
-import { Download, FileText, LayoutDashboard, PenTool, Table, Image as ImageIcon, Globe, LogOut, UserCheck } from 'lucide-react';
+import { Download, FileText, LayoutDashboard, PenTool, Table, Image as ImageIcon, Globe, LogOut, UserCheck, Bug } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { AppTab } from './types';
 import AiNotConfigured from './components/AiNotConfigured';
@@ -32,6 +32,7 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
   const [pendingApprovals, setPendingApprovals] = useState<number | null>(null);
   const isAdmin = (session.user.email ?? '').toLowerCase() === ADMIN_EMAIL.toLowerCase();
   const enableVisualizer = (import.meta as any).env?.VITE_ENABLE_VISUALIZER === 'true';
+  const supportEmail = (import.meta.env.VITE_SUPPORT_EMAIL as string | undefined) ?? ADMIN_EMAIL;
 
   const { loading, error, projects, activeProject, results, setActiveProjectId, createNewProject, removeProject, updateInputs } =
     useProjects();
@@ -296,6 +297,37 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
               <span className="inline-flex items-center gap-2">
                 <FileText size={16} />
                 PDF
+              </span>
+            </button>
+            <button
+              type="button"
+              disabled={!activeProject || !results || exporting}
+              onClick={async () => {
+                if (!activeProject || !results) return;
+                setExporting(true);
+                try {
+                  await downloadProjectReportZip({ project: activeProject, results });
+                } finally {
+                  setExporting(false);
+                }
+                const subj = encodeURIComponent(`Garza ROI Issue: ${activeProject.name}`);
+                const body = encodeURIComponent(
+                  [
+                    'Please describe what happened and attach the downloaded report ZIP.',
+                    '',
+                    `Project: ${activeProject.name} (${activeProject.strategy})`,
+                    `URL: ${window.location.href}`,
+                    `When: ${new Date().toISOString()}`,
+                  ].join('\n')
+                );
+                window.open(`mailto:${supportEmail}?subject=${subj}&body=${body}`, '_blank', 'noopener,noreferrer');
+              }}
+              className="gi-btn gi-btn-secondary px-3 py-2 text-sm font-semibold disabled:opacity-60"
+              title="Downloads a report ZIP and opens an email to support"
+            >
+              <span className="inline-flex items-center gap-2">
+                <Bug size={16} />
+                Report a problem
               </span>
             </button>
             </div>

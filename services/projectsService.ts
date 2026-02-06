@@ -11,6 +11,7 @@ type ProjectRow = {
   owner_id: string;
   name: string;
   strategy: InvestmentStrategy;
+  environment?: string | null;
   data: ProjectDataPayload;
   schema_version: number;
   created_at: string;
@@ -34,11 +35,18 @@ const rowToProject = (row: ProjectRow): Project => {
   };
 };
 
+const appEnv = () => {
+  const fromEnv = import.meta.env.VITE_APP_ENV as string | undefined;
+  if (fromEnv) return fromEnv;
+  return import.meta.env.PROD ? 'production' : 'preview';
+};
+
 export const listProjects = async (): Promise<Project[]> => {
   if (!supabase) return [];
   const { data, error } = await supabase
     .from('projects')
-    .select('id,owner_id,name,strategy,data,schema_version,created_at,updated_at')
+    .select('id,owner_id,name,strategy,environment,data,schema_version,created_at,updated_at')
+    .eq('environment', appEnv())
     .order('updated_at', { ascending: false });
   if (error) throw error;
   return ((data ?? []) as ProjectRow[]).map(rowToProject);
@@ -64,11 +72,12 @@ export const createProject = async (args: {
       owner_id: args.ownerId,
       name: args.name,
       strategy: args.strategy,
+      environment: appEnv(),
       data: payload,
       schema_version: 1,
       updated_at: nowIso(),
     })
-    .select('id,owner_id,name,strategy,data,schema_version,created_at,updated_at')
+    .select('id,owner_id,name,strategy,environment,data,schema_version,created_at,updated_at')
     .single();
 
   if (error) throw error;
@@ -91,4 +100,3 @@ export const deleteProject = async (id: string): Promise<void> => {
   const { error } = await supabase.from('projects').delete().eq('id', id);
   if (error) throw error;
 };
-
