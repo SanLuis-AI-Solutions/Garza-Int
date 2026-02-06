@@ -1,0 +1,653 @@
+Workflows Catalog
+Generated: 2026-01-27 16:45
+
+How to use this catalog (for NotebookLM):
+- Each entry includes a name, description, steps, and outputs.
+- Use descriptions to decide which workflow fits a task.
+- Use outputs to decide what artifacts to request (plans, checklists, reports).
+
+- /ai-solution-architecture
+  Description: Workflow for /ai-solution-architecture tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - 1. **System Overview**
+    - 2. **Data & Integrations**
+    - 3. **Agent Design**
+    - 4. **Safety & Reliability**
+  Outputs:
+    - Architecture summary
+    - Component list and responsibilities
+    - Data flow and integration map
+    - Risks, mitigations, and open questions
+    - 
+
+- /analytics-implementation
+  Description: Workflow for /analytics-implementation tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - 1. **KPI Definition**
+    - 2. **Event Taxonomy**
+    - 3. **Instrumentation Plan**
+    - 4. **Reporting**
+  Outputs:
+    - KPI list and definitions
+    - Event taxonomy table
+    - Implementation checklist
+    - Reporting dashboard outline
+    - 
+
+- /audit-and-fix
+  Description: Workflow for /audit-and-fix tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - 1. Clarify scope and inputs
+    - 2. Run the core analysis
+    - 3. Produce prioritized recommendations
+    - 4. Define next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /automation-blueprint
+  Description: Workflow for /automation-blueprint tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - 1. **Triggers & Inputs**
+    - 2. **Workflow Design**
+    - 3. **Data Mapping**
+    - 4. **Ops & Monitoring**
+  Outputs:
+    - Workflow diagram (text)
+    - Node-by-node configuration list
+    - Validation and error-handling plan
+    - Test checklist
+    - 
+
+- /backlink-plan
+  Description: Workflow for /backlink-plan tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - 1. Clarify scope and inputs
+    - 2. Run the core analysis
+    - 3. Produce prioritized recommendations
+    - 4. Define next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /blog-strategy
+  Description: Workflow for /blog-strategy tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - 1. Clarify scope and inputs
+    - 2. Run the core analysis
+    - 3. Produce prioritized recommendations
+    - 4. Define next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /brainstorm
+  Description: Workflow for /brainstorm tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - Clarify scope and inputs
+    - Run the core analysis or implementation
+    - Summarize findings
+    - Deliver next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /competitor-analysis
+  Description: Workflow for /competitor-analysis tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - 1. Clarify scope and inputs
+    - 2. Run the core analysis
+    - 3. Produce prioritized recommendations
+    - 4. Define next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /conversion-optimization
+  Description: Workflow for /conversion-optimization tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - 1. **Funnel Review**
+    - 2. **Form Improvements**
+    - 3. **Experiment Ideas**
+    - 4. **Measurement**
+  Outputs:
+    - Funnel audit summary
+    - CRO recommendations (ranked)
+    - Test plan and tracking checklist
+    - 
+
+- /create
+  Description: Workflow for /create tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - 1. **Request Analysis**
+    - 2. **Project Planning**
+    - 3. **Application Building (After Approval)**
+    - 4. **Preview**
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /debug
+  Description: Workflow for /debug tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - Clarify scope and inputs
+    - Run the core analysis or implementation
+    - Summarize findings
+    - Deliver next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /deploy
+  Description: Workflow for /deploy tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - Clarify scope and inputs
+    - Run the core analysis or implementation
+    - Summarize findings
+    - Deliver next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /discovery
+  Description: Workflow for /discovery tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - 1. **Business Goals**
+    - 2. **Audience & Context**
+    - 3. **Constraints & Risks**
+    - 4. **Success Metrics**
+  Outputs:
+    - Problem statement
+    - Success metrics (KPIs)
+    - Constraints and assumptions
+    - Solution hypotheses (1-3)
+    - Next-step recommendations
+    - 
+
+- /enhance
+  Description: Workflow for /enhance tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - 1. **Understand Current State**
+    - 2. **Plan Changes**
+    - 3. **Present Plan to User** (for major changes)
+    - 4. **Apply**
+    - 5. **Update Preview**
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /feedback-loop
+  Description: Workflow for /feedback-loop tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - 1. Clarify scope and inputs
+    - 2. Run the core analysis
+    - 3. Produce prioritized recommendations
+    - 4. Define next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /ga4-audit
+  Description: Workflow for /ga4-audit tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - 1. Clarify scope and inputs
+    - 2. Run the core analysis
+    - 3. Produce prioritized recommendations
+    - 4. Define next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /growth-launch
+  Description: Workflow for /growth-launch tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - 1. Discovery: goals, personas, KPIs, positioning
+    - 2. Growth planning: SEO map, content clusters, funnel strategy
+    - 3. Architecture: system design + compliance
+    - 4. Build: implement + QA
+    - 5. Security gate: scan + test + observe
+    - 6. Deploy: release + rollback
+    - 7. Optimization: analytics + feedback loop + growth backlog
+  Outputs:
+    - Phase-by-phase plan
+    - Required artifacts
+    - Risks and mitigations
+    - Next-step checklist
+
+- /installagents
+  Description: Workflow for /installagents tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - Clarify scope and inputs
+    - Run the core analysis or implementation
+    - Summarize findings
+    - Deliver next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /installall
+  Description: Install global skills, agents, workflows, sync catalogs/docs, run project bootstrap, and run MCP preflight.
+  Uses skills: (not specified)
+  Steps:
+    - Install global assets into .agent/
+    - Sync catalogs + seed starter docs
+    - Run project bootstrap (env overlay + deps)
+    - Run MCP preflight script
+    - If Docker MCP is unstable, disable broken servers and re-check
+  Outputs:
+    - Install confirmation
+    - MCP health summary
+    - Missing config/env items
+
+- /installskills
+  Description: Workflow for /installskills tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - Clarify scope and inputs
+    - Run the core analysis or implementation
+    - Summarize findings
+    - Deliver next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /installworkflows
+  Description: Workflow for /installworkflows tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - Clarify scope and inputs
+    - Run the core analysis or implementation
+    - Summarize findings
+    - Deliver next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /keyword-research
+  Description: Workflow for /keyword-research tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - 1. Clarify scope and inputs
+    - 2. Run the core analysis
+    - 3. Produce prioritized recommendations
+    - 4. Define next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /orchestrate
+  Description: Workflow for /orchestrate tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - Clarify scope and inputs
+    - Run the core analysis or implementation
+    - Summarize findings
+    - Deliver next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /plan
+  Description: Workflow for /plan tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - Clarify scope and inputs
+    - Run the core analysis or implementation
+    - Summarize findings
+    - Deliver next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /preview
+  Description: Workflow for /preview tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - Clarify scope and inputs
+    - Run the core analysis or implementation
+    - Summarize findings
+    - Deliver next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /repo-automation
+  Description: Workflow for /repo-automation tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - 1. **CI/CD Review**
+    - 2. **Automation Opportunities**
+    - 3. **Security & Quality**
+  Outputs:
+    - Workflow recommendations
+    - CI/CD pipeline map
+    - Required checks and policies
+    - 
+
+- /security-gate
+  Description: Workflow for /security-gate tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - 1. Clarify scope and inputs
+    - 2. Run the core analysis
+    - 3. Produce prioritized recommendations
+    - 4. Define next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /seo-growth-plan
+  Description: Workflow for /seo-growth-plan tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - 1. **Audience & Keywords**
+    - 2. **Content Strategy**
+    - 3. **Schema & Technical**
+    - 4. **Measurement**
+  Outputs:
+    - Keyword map and page plan
+    - Content calendar and template list
+    - Schema recommendations
+    - Tracking plan (events + KPIs)
+    - 
+
+- /sequential-plan
+  Description: Workflow for /sequential-plan tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - 1. Clarify scope, constraints, and success criteria
+    - 2. Break work into ordered steps with dependencies
+    - 3. Identify risks and unknowns
+    - 4. Define verification for each major step
+  Outputs:
+    - Ordered plan
+    - Dependencies
+    - Risks and mitigations
+    - Verification checklist
+
+- /social-content-plan
+  Description: Workflow for /social-content-plan tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - 1. Clarify scope and inputs
+    - 2. Run the core analysis
+    - 3. Produce prioritized recommendations
+    - 4. Define next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /status
+  Description: Workflow for /status tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - Clarify scope and inputs
+    - Run the core analysis or implementation
+    - Summarize findings
+    - Deliver next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /ui-artifact-loop
+  Description: Multi-model UI loop (Codex leads; Gemini Fast explores; Gemini Pro + Stitch converges; Opus reviews) with repo-committed artifacts.
+  Uses skills: (not specified)
+  Steps:
+    - 1. Create `Docs/artifacts/ui/YYYY-MM-DD--<slug>/` and write `00-brief.md`
+    - 2. Generate 3-7 UI directions with Gemini Fast (`01-gemini-fast-options.md`)
+    - 3. Choose 1 direction (Codex) and record the decision in `00-brief.md`
+    - 4. Generate Stitch screens + save IDs/URLs (`02-stitch-links.md`)
+    - 5. Opus critique with change requests (`03-opus-review.md`)
+    - 6. Implement, verify (`npm run build`), and document (`04-implementation-notes.md`)
+  Outputs:
+    - Artifact folder with 00-04 files (brief, options, Stitch links, Opus review, implementation notes)
+    - Verification notes (build + smoke checks)
+
+- /stitch-design-to-react
+  Description: Stitch -> artifact capture -> React component conversion (Vite/React).
+  Uses skills: `design-md` (optional), `react:components`
+  Steps:
+    - 1. Create or reuse an artifact folder (`Docs/artifacts/ui/...`)
+    - 2. Use Stitch MCP to fetch screen metadata and capture screenshot/HTML links (`02-stitch-links.md`)
+    - 3. (Optional) Generate or refresh `DESIGN.md` from Stitch
+    - 4. Convert Stitch HTML into modular React components
+    - 5. Integrate, verify (`npm run build`), and write `04-implementation-notes.md`
+  Outputs:
+    - `DESIGN.md` (optional design system source of truth)
+    - React component set + integration wiring
+    - Artifact folder updates + verification notes
+
+- /sync-docs
+  Description: Workflow for /sync-docs tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - 1. Clarify scope and inputs
+    - 2. Run the core analysis
+    - 3. Produce prioritized recommendations
+    - 4. Define next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /syncagents
+  Description: Workflow for /syncagents tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - Clarify scope and inputs
+    - Run the core analysis or implementation
+    - Summarize findings
+    - Deliver next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /syncskills
+  Description: Workflow for /syncskills tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - Clarify scope and inputs
+    - Run the core analysis or implementation
+    - Summarize findings
+    - Deliver next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /syncworkflows
+  Description: Workflow for /syncworkflows tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - Clarify scope and inputs
+    - Run the core analysis or implementation
+    - Summarize findings
+    - Deliver next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /test
+  Description: Workflow for /test tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - Clarify scope and inputs
+    - Run the core analysis or implementation
+    - Summarize findings
+    - Deliver next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /ui-ux-pro-max
+  Description: Workflow for /ui-ux-pro-max tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - Clarify scope and inputs
+    - Run the core analysis or implementation
+    - Summarize findings
+    - Deliver next actions
+  Outputs:
+    - Summary
+    - Findings
+    - Recommended actions
+    - Next steps
+
+- /voice-agent-design
+  Description: Workflow for /voice-agent-design tasks and structured delivery.
+  Uses skills: (not specified)
+  Steps:
+    - 1. **Use Case & Scope**
+    - 2. **Conversation Flow**
+    - 3. **Integrations**
+    - 4. **Compliance**
+  Outputs:
+    - Voice agent scope and KPIs
+    - Conversation flow outline
+    - Integration requirements
+    - Risk and compliance notes
+    - 
+
+
+
+- /preflight
+  Description: Preflight checklist to ensure core docs and environment setup are ready.
+  Uses skills: (not specified)
+  Steps:
+    - 0. Load Project Brief (if present)
+    - 1. Docs check (brief, PRD, decisions, roadmap)
+    - 2. Env check (.env.example)
+    - 3. Workflow readiness
+  Outputs:
+    - Checklist status
+    - Missing items
+    - Next actions
+- /handoff
+  Description: Generate a concise handoff summary for a new chat.
+  Uses skills: (not specified)
+  Steps:
+    - 0. Load Project Brief (if present)
+    - 1. Scan key docs (PRD, DECISIONS, ROADMAP)
+    - 2. Summarize current status and next actions
+  Outputs:
+    - Handoff summary (1 page max)
+    - Next actions
+- /qa-gate
+  Description: Quality gate checklist before deploy or milestone handoff.
+  Uses skills: (not specified)
+  Steps:
+    - 1. Checklist (lint, tests, security, perf, a11y)
+    - 2. Report pass/fail with next actions
+  Outputs:
+    - QA checklist results
+    - Next actions
+- /prd-review
+  Description: Analyze PRD, identify gaps, and optimize before build.
+  Uses skills: (not specified)
+  Steps:
+    - 1. Load PRD
+    - 2. Summarize intent
+    - 3. Gap analysis
+    - 4. Optimization suggestions
+    - 5. Clarifying questions
+  Outputs:
+    - PRD summary
+    - Gaps & risks
+    - Optimization suggestions
+    - Clarifying questions
+- /sync-brief
+  Description: Sync PROJECT_BRIEF.md from PRD with minimal clarification.
+  Uses skills: (not specified)
+  Steps:
+    - 1. Load PRD
+    - 2. Extract key details
+    - 3. Update PROJECT_BRIEF.md
+    - 4. Ask top missing items
+  Outputs:
+    - Updated PROJECT_BRIEF.md
+    - Clarifying questions
+
+- /bootstrap
+  Description: One-shot PRD review, brief sync, and startup plan.
+  Uses skills: (not specified)
+  Steps:
+    - 0. Load PRD
+    - 1. PRD Review
+    - 2. Sync Brief
+    - 3. Start Pipeline
+  Outputs:
+    - PRD review summary + questions
+    - Updated PROJECT_BRIEF.md
+    - Kickoff summary
+    - Research bundle
+    - 7-day execution plan
+    - docs/PLAN-{slug}.md
+

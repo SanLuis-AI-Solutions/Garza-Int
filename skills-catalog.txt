@@ -1,0 +1,625 @@
+ Catalog
+Generated: 2026-01-27 13:43
+
+How to use this catalog (for NotebookLM):
+- Each entry includes a name, description, what it does, and outputs.
+- Use descriptions to decide which item fits a task.
+- Use outputs to decide what artifacts to request (plans, checklists, reports).
+
+- accessibility-auditor
+  Description: Domain skill for accessibility-auditor tasks and guidance.
+  What it does:
+    - 1. Run automated scans (WCAG/ARIA)
+    - 2. Review color contrast and focus order
+    - 3. Verify keyboard navigation
+    - 4. Check semantic structure and labels
+    - 5. Document fixes and re-test
+  Outputs:
+    - Audit report
+    - Fix list (priority)
+    - Re-test checklist
+
+- api-patterns
+  Description: Domain skill for api-patterns tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for api-patterns use cases.
+  Outputs:
+    - Checklist and recommended actions for api-patterns
+
+- app-builder
+  Description: Domain skill for app-builder tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for app-builder use cases.
+  Outputs:
+    - Checklist and recommended actions for app-builder
+
+- architecture
+  Description: Domain skill for architecture tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for architecture use cases.
+  Outputs:
+    - Checklist and recommended actions for architecture
+
+- backlink-strategy
+  Description: Domain skill for backlink-strategy tasks and guidance.
+  What it does:
+    - 1. Audit current link profile
+    - 2. Identify target domains and assets
+    - 3. Plan outreach and partnerships
+    - 4. Track placements and quality
+    - 5. Monitor for toxic links
+  Outputs:
+    - Target list
+    - Outreach plan
+    - Tracking sheet
+
+- bash-linux
+  Description: Domain skill for bash-linux tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for bash-linux use cases.
+  Outputs:
+    - Checklist and recommended actions for bash-linux
+
+- behavioral-modes
+  Description: Domain skill for behavioral-modes tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for behavioral-modes use cases.
+  Outputs:
+    - Checklist and recommended actions for behavioral-modes
+
+- blog-content-strategy
+  Description: Domain skill for blog-content-strategy tasks and guidance.
+  What it does:
+    - 1. Define topic clusters and goals
+    - 2. Draft editorial calendar
+    - 3. Create brief templates
+    - 4. Set publishing and update cadence
+    - 5. Measure performance and refresh
+  Outputs:
+    - Topic clusters
+    - Editorial calendar
+    - Content brief template
+    - Update cadence
+
+- brainstorming
+  Description: Domain skill for brainstorming tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for brainstorming use cases.
+  Outputs:
+    - Checklist and recommended actions for brainstorming
+
+- clean-code
+  Description: Domain skill for clean-code tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for clean-code use cases.
+  Outputs:
+    - Checklist and recommended actions for clean-code
+
+- code-review-checklist
+  Description: Domain skill for code-review-checklist tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for code-review-checklist use cases.
+  Outputs:
+    - Checklist and recommended actions for code-review-checklist
+
+- competitor-analysis
+  Description: Domain skill for competitor-analysis tasks and guidance.
+  What it does:
+    - 1. Identify direct and indirect competitors
+    - 2. Compare positioning, offers, and funnels
+    - 3. Audit content and keyword coverage
+    - 4. Review backlink profiles
+    - 5. Summarize gaps and opportunities
+  Outputs:
+    - Competitor matrix
+    - Gap analysis
+    - Opportunity list
+
+- compliance-governance
+  Description: Domain skill for compliance-governance tasks and guidance.
+  What it does:
+    - 1. Identify applicable regulations and data types
+    - 2. Map data flows and storage locations
+    - 3. Define retention and deletion policies
+    - 4. Verify consent, cookie, and privacy notices
+    - 5. Audit OSS licenses and third-party tools
+  Outputs:
+    - Compliance requirements matrix
+    - Data flow map
+    - Retention policy checklist
+    - OSS license audit notes
+
+- data-pipelines
+  Description: Domain skill for data-pipelines tasks and guidance.
+  What it does:
+    - 1. Define sources, destinations, and SLAs
+    - 2. Choose ETL/ELT pattern and scheduling
+    - 3. Design schemas and transformations
+    - 4. Add monitoring and retries
+    - 5. Validate data quality and lineage
+  Outputs:
+    - Pipeline architecture
+    - Source-to-target mapping
+    - Scheduling + retry plan
+    - Data quality checks
+
+- database-design
+  Description: Domain skill for database-design tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for database-design use cases.
+  Outputs:
+    - Checklist and recommended actions for database-design
+
+- deployment-procedures
+  Description: Domain skill for deployment-procedures tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for deployment-procedures use cases.
+  Outputs:
+    - Checklist and recommended actions for deployment-procedures
+
+- design-md
+  Description: Domain skill for design-md tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for design-md use cases.
+  Outputs:
+    - Checklist and recommended actions for design-md
+
+- docker-expert
+  Description: Domain skill for docker-expert tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for docker-expert use cases.
+  Outputs:
+    - Checklist and recommended actions for docker-expert
+
+- documentation-templates
+  Description: Domain skill for documentation-templates tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for documentation-templates use cases.
+  Outputs:
+    - Checklist and recommended actions for documentation-templates
+
+- frontend-design
+  Description: Domain skill for frontend-design tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for frontend-design use cases.
+  Outputs:
+    - Checklist and recommended actions for frontend-design
+
+- ga4-analytics
+  Description: Domain skill for ga4-analytics tasks and guidance.
+  What it does:
+    - 1. Define KPIs and conversion events
+    - 2. Audit GA4 setup and tags
+    - 3. Validate event payloads
+    - 4. Build reporting dashboards
+    - 5. Document tracking plan
+  Outputs:
+    - Measurement plan
+    - Event map
+    - Audit findings
+    - Dashboard checklist
+
+- game-development
+  Description: Domain skill for game-development tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for game-development use cases.
+  Outputs:
+    - Checklist and recommended actions for game-development
+
+- geo-fundamentals
+  Description: Domain skill for geo-fundamentals tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for geo-fundamentals use cases.
+  Outputs:
+    - Checklist and recommended actions for geo-fundamentals
+
+- i18n-localization
+  Description: Domain skill for i18n-localization tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for i18n-localization use cases.
+  Outputs:
+    - Checklist and recommended actions for i18n-localization
+
+- keyword-research
+  Description: Domain skill for keyword-research tasks and guidance.
+  What it does:
+    - 1. Define target personas and intent buckets
+    - 2. Build seed list and expand
+    - 3. Cluster by topic and intent
+    - 4. Prioritize by impact and difficulty
+    - 5. Map to pages and content briefs
+  Outputs:
+    - Keyword clusters
+    - Priority list
+    - Intent map
+    - Content brief outlines
+
+- lint-and-validate
+  Description: Domain skill for lint-and-validate tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for lint-and-validate use cases.
+  Outputs:
+    - Checklist and recommended actions for lint-and-validate
+
+- mcp-builder
+  Description: Domain skill for mcp-builder tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for mcp-builder use cases.
+  Outputs:
+    - Checklist and recommended actions for mcp-builder
+
+- mobile-design
+  Description: Domain skill for mobile-design tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for mobile-design use cases.
+  Outputs:
+    - Checklist and recommended actions for mobile-design
+
+- nestjs-expert
+  Description: Domain skill for nestjs-expert tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for nestjs-expert use cases.
+  Outputs:
+    - Checklist and recommended actions for nestjs-expert
+
+- nextjs-best-practices
+  Description: Domain skill for nextjs-best-practices tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for nextjs-best-practices use cases.
+  Outputs:
+    - Checklist and recommended actions for nextjs-best-practices
+
+- nodejs-best-practices
+  Description: Domain skill for nodejs-best-practices tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for nodejs-best-practices use cases.
+  Outputs:
+    - Checklist and recommended actions for nodejs-best-practices
+
+- notebooklm
+  Description: Domain skill for notebooklm tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for notebooklm use cases.
+  Outputs:
+    - Checklist and recommended actions for notebooklm
+
+- observability-stack
+  Description: Domain skill for observability-stack tasks and guidance.
+  What it does:
+    - 1. Define SLOs/SLIs for critical journeys
+    - 2. Instrument logs, metrics, and traces
+    - 3. Set alerting thresholds and on-call playbooks
+    - 4. Create dashboards for service health
+    - 5. Run incident reviews and feed improvements
+  Outputs:
+    - SLO/SLI table
+    - Alerting rules
+    - Dashboard checklist
+    - Incident response playbook
+
+- openapi-governance
+  Description: Domain skill for openapi-governance tasks and guidance.
+  What it does:
+    - 1. Define API domains and ownership
+    - 2. Draft OpenAPI specs with examples
+    - 3. Validate schemas and breaking changes
+    - 4. Generate clients/servers as needed
+    - 5. Enforce versioning and review gates
+  Outputs:
+    - OpenAPI spec checklist
+    - Versioning policy
+    - Breaking change rules
+    - Client generation notes
+
+- parallel-agents
+  Description: Domain skill for parallel-agents tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for parallel-agents use cases.
+  Outputs:
+    - Checklist and recommended actions for parallel-agents
+
+- performance-profiling
+  Description: Domain skill for performance-profiling tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for performance-profiling use cases.
+  Outputs:
+    - Checklist and recommended actions for performance-profiling
+
+- plan-writing
+  Description: Domain skill for plan-writing tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for plan-writing use cases.
+  Outputs:
+    - Checklist and recommended actions for plan-writing
+
+- powershell-windows
+  Description: Domain skill for powershell-windows tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for powershell-windows use cases.
+  Outputs:
+    - Checklist and recommended actions for powershell-windows
+
+- prisma-expert
+  Description: Domain skill for prisma-expert tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for prisma-expert use cases.
+  Outputs:
+    - Checklist and recommended actions for prisma-expert
+
+- python-patterns
+  Description: Domain skill for python-patterns tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for python-patterns use cases.
+  Outputs:
+    - Checklist and recommended actions for python-patterns
+
+- react-components
+  Description: Domain skill for react-components tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for react-components use cases.
+  Outputs:
+    - Checklist and recommended actions for react-components
+
+- react-patterns
+  Description: Domain skill for react-patterns tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for react-patterns use cases.
+  Outputs:
+    - Checklist and recommended actions for react-patterns
+
+- red-team-tactics
+  Description: Domain skill for red-team-tactics tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for red-team-tactics use cases.
+  Outputs:
+    - Checklist and recommended actions for red-team-tactics
+
+- seo-fundamentals
+  Description: Domain skill for seo-fundamentals tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for seo-fundamentals use cases.
+  Outputs:
+    - Checklist and recommended actions for seo-fundamentals
+
+- server-management
+  Description: Domain skill for server-management tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for server-management use cases.
+  Outputs:
+    - Checklist and recommended actions for server-management
+
+- social-media-strategy
+  Description: Domain skill for social-media-strategy tasks and guidance.
+  What it does:
+    - 1. Define channels and content pillars
+    - 2. Create posting cadence and formats
+    - 3. Build campaign concepts
+    - 4. Align CTAs with funnels
+    - 5. Measure and iterate
+  Outputs:
+    - Channel plan
+    - Content calendar
+    - CTA map
+    - KPIs
+
+- systematic-debugging
+  Description: Domain skill for systematic-debugging tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for systematic-debugging use cases.
+  Outputs:
+    - Checklist and recommended actions for systematic-debugging
+
+- tailwind-patterns
+  Description: Domain skill for tailwind-patterns tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for tailwind-patterns use cases.
+  Outputs:
+    - Checklist and recommended actions for tailwind-patterns
+
+- tdd-workflow
+  Description: Domain skill for tdd-workflow tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for tdd-workflow use cases.
+  Outputs:
+    - Checklist and recommended actions for tdd-workflow
+
+- terraform-iac
+  Description: Domain skill for terraform-iac tasks and guidance.
+  What it does:
+    - 1. Define environments and state strategy
+    - 2. Map resources to modules
+    - 3. Implement variables and secrets handling
+    - 4. Validate plan/apply in CI
+    - 5. Document rollback and drift checks
+  Outputs:
+    - Module map
+    - Variable list
+    - CI plan/apply checklist
+    - Drift/rollback notes
+
+- testing-patterns
+  Description: Domain skill for testing-patterns tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for testing-patterns use cases.
+  Outputs:
+    - Checklist and recommended actions for testing-patterns
+
+- typescript-expert
+  Description: Domain skill for typescript-expert tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for typescript-expert use cases.
+  Outputs:
+    - Checklist and recommended actions for typescript-expert
+
+- ui-ux-pro-max
+  Description: Domain skill for ui-ux-pro-max tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for ui-ux-pro-max use cases.
+  Outputs:
+    - Checklist and recommended actions for ui-ux-pro-max
+
+- vulnerability-scanner
+  Description: Domain skill for vulnerability-scanner tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for vulnerability-scanner use cases.
+  Outputs:
+    - Checklist and recommended actions for vulnerability-scanner
+
+- webapp-testing
+  Description: Domain skill for webapp-testing tasks and guidance.
+  What it does:
+    - Provide analysis, steps, and recommendations for webapp-testing use cases.
+  Outputs:
+    - Checklist and recommended actions for webapp-testing
+
+
+
+Additional Skills (Added 2026-02-02)
+
+- web-artifacts-builder
+  Description: Suite of tools for creating elaborate, multi-component claude.ai HTML artifacts using modern frontend web technologies (React, Tailwind CSS, shadcn/ui). Use for complex artifacts requiring state management, routing, or shadcn/ui components - not for simple single-file HTML/JSX artifacts.
+  What it does:
+    - Refer to SKILL.md
+  Outputs:
+    - Refer to SKILL.md
+
+- project-development
+  Description: This skill should be used when the user asks to "start an LLM project", "design batch pipeline", "evaluate task-model fit", "structure agent project", or mentions pipeline architecture, agent-assisted development, cost estimation, or choosing between LLM and traditional approaches.
+  What it does:
+    - Refer to SKILL.md
+  Outputs:
+    - Refer to SKILL.md
+
+- brand-guidelines
+  Description: Applies Anthropic's official brand colors and typography to any sort of artifact that may benefit from having Anthropic's look-and-feel. Use it when brand colors or style guidelines, visual formatting, or company design standards apply.
+  What it does:
+    - Refer to SKILL.md
+  Outputs:
+    - Refer to SKILL.md
+
+- 3d-web-experience
+  Description: "Expert in building 3D experiences for the web - Three.js, React Three Fiber, Spline, WebGL, and interactive 3D scenes. Covers product configurators, 3D portfolios, immersive websites, and bringing depth to web experiences. Use when: 3D website, three.js, WebGL, react three fiber, 3D experience."
+  What it does:
+    - Refer to SKILL.md
+  Outputs:
+    - Refer to SKILL.md
+
+- browser-automation
+  Description: "Browser automation powers web testing, scraping, and AI agent interactions. The difference between a flaky script and a reliable system comes down to understanding selectors, waiting strategies, and anti-detection patterns.  This skill covers Playwright (recommended) and Puppeteer, with patterns for testing, scraping, and agentic browser control. Key insight: Playwright won the framework war. Unless you need Puppeteer's stealth ecosystem or are Chrome-only, Playwright is the better choice in 202"
+  What it does:
+    - Refer to SKILL.md
+  Outputs:
+    - Refer to SKILL.md
+
+- marketing-psychology
+  Description: Apply behavioral science and mental models to marketing decisions, prioritized using a psychological leverage and feasibility scoring system.
+  What it does:
+    - Refer to SKILL.md
+  Outputs:
+    - Refer to SKILL.md
+
+- scroll-experience
+  Description: "Expert in building immersive scroll-driven experiences - parallax storytelling, scroll animations, interactive narratives, and cinematic web experiences. Like NY Times interactives, Apple product pages, and award-winning web experiences. Makes websites feel like experiences, not just pages. Use when: scroll animation, parallax, scroll storytelling, interactive story, cinematic website."
+  What it does:
+    - Refer to SKILL.md
+  Outputs:
+    - Refer to SKILL.md
+
+- web-design-guidelines
+  Description: Review UI code for Web Interface Guidelines compliance. Use when asked to "review my UI", "check accessibility", "audit design", "review UX", or "check my site against best practices".
+  What it does:
+    - Refer to SKILL.md
+  Outputs:
+    - Refer to SKILL.md
+
+- web-performance-optimization
+  Description: "Optimize website and web application performance including loading speed, Core Web Vitals, bundle size, caching strategies, and runtime performance"
+  What it does:
+    - Refer to SKILL.md
+  Outputs:
+    - Refer to SKILL.md
+
+- dispatching-parallel-agents
+  Description: Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies
+  What it does:
+    - Refer to SKILL.md
+  Outputs:
+    - Refer to SKILL.md
+
+- executing-plans
+  Description: Use when you have a written implementation plan to execute in a separate session with review checkpoints
+  What it does:
+    - Refer to SKILL.md
+  Outputs:
+    - Refer to SKILL.md
+
+- finishing-a-development-branch
+  Description: Use when implementation is complete, all tests pass, and you need to decide how to integrate the work - guides completion of development work by presenting structured options for merge, PR, or cleanup
+  What it does:
+    - Refer to SKILL.md
+  Outputs:
+    - Refer to SKILL.md
+
+- receiving-code-review
+  Description: Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not performative agreement or blind implementation
+  What it does:
+    - Refer to SKILL.md
+  Outputs:
+    - Refer to SKILL.md
+
+- requesting-code-review
+  Description: Use when completing tasks, implementing major features, or before merging to verify work meets requirements
+  What it does:
+    - Refer to SKILL.md
+  Outputs:
+    - Refer to SKILL.md
+
+- subagent-driven-development
+  Description: Use when executing implementation plans with independent tasks in the current session
+  What it does:
+    - Refer to SKILL.md
+  Outputs:
+    - Refer to SKILL.md
+
+- test-driven-development
+  Description: Use when implementing any feature or bugfix, before writing implementation code
+  What it does:
+    - Refer to SKILL.md
+  Outputs:
+    - Refer to SKILL.md
+
+- using-git-worktrees
+  Description: Use when starting feature work that needs isolation from current workspace or before executing implementation plans - creates isolated git worktrees with smart directory selection and safety verification
+  What it does:
+    - Refer to SKILL.md
+  Outputs:
+    - Refer to SKILL.md
+
+- using-superpowers
+  Description: Use when starting any conversation - establishes how to find and use skills, requiring Skill tool invocation before ANY response including clarifying questions
+  What it does:
+    - Refer to SKILL.md
+  Outputs:
+    - Refer to SKILL.md
+
+- verification-before-completion
+  Description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always
+  What it does:
+    - Refer to SKILL.md
+  Outputs:
+    - Refer to SKILL.md
+
+- writing-plans
+  Description: Use when you have a spec or requirements for a multi-step task, before touching code
+  What it does:
+    - Refer to SKILL.md
+  Outputs:
+    - Refer to SKILL.md
+
+- writing-skills
+  Description: Use when creating new skills, editing existing skills, or verifying skills work before deployment
+  What it does:
+    - Refer to SKILL.md
+  Outputs:
+    - Refer to SKILL.md
+

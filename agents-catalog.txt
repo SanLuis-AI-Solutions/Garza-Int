@@ -1,0 +1,279 @@
+ Catalog
+Generated: 2026-01-27 13:44
+
+How to use this catalog (for NotebookLM):
+- Each entry includes a name, description, what it does/steps, and outputs.
+- Use descriptions to decide which item fits a task.
+- Use outputs to decide what artifacts to request (plans, checklists, reports).
+
+- ai-product-strategist
+  Description: Specialist agent for ai-product-strategist tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - 1. Clarify objectives and constraints
+    - 2. Define users, pains, and outcomes
+    - 3. Propose solution hypotheses
+    - 4. Specify KPIs and measurement plan
+
+- ai-solution-architect
+  Description: Specialist agent for ai-solution-architect tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - 1. Produce a clear architecture summary
+    - 2. Define components, interfaces, and data flow
+    - 3. Specify guardrails, validation, and fallback paths
+    - 4. Identify risks and open questions
+
+- analytics-lead
+  Description: Specialist agent for analytics-lead tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - 1. Define KPIs and baselines
+    - 2. Create event naming and properties
+    - 3. Specify instrumentation plan
+    - 4. Outline dashboards and reporting cadence
+
+- automation-architect
+  Description: Specialist agent for automation-architect tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - 1. Define triggers, inputs, and outputs
+    - 2. Specify node sequence and branching logic
+    - 3. Map data fields and transformations
+    - 4. Include retries, alerts, and recovery paths
+
+- backend-specialist
+  Description: Specialist agent for backend-specialist tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - Define scope and success criteria
+    - Produce a structured plan
+    - Identify risks and mitigations
+    - Deliver next-step recommendations
+
+- compliance-officer
+  Description: Specialist agent for compliance-officer tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - 1. Define goals and scope
+    - 2. Produce a structured plan
+    - 3. Identify risks and mitigations
+    - 4. Deliver next-step recommendations
+
+- content-strategist
+  Description: Specialist agent for content-strategist tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - 1. Define goals and scope
+    - 2. Produce a structured plan
+    - 3. Identify risks and mitigations
+    - 4. Deliver next-step recommendations
+
+- conversion-optimizer
+  Description: Specialist agent for conversion-optimizer tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - 1. Audit current funnel and forms
+    - 2. Propose ranked CRO improvements
+    - 3. Define A/B tests and hypotheses
+    - 4. Specify tracking needs
+
+- data-engineer
+  Description: Specialist agent for data-engineer tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - 1. Define goals and scope
+    - 2. Produce a structured plan
+    - 3. Identify risks and mitigations
+    - 4. Deliver next-step recommendations
+
+- database-architect
+  Description: Specialist agent for database-architect tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - Define scope and success criteria
+    - Produce a structured plan
+    - Identify risks and mitigations
+    - Deliver next-step recommendations
+
+- debugger
+  Description: Specialist agent for debugger tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - Define scope and success criteria
+    - Produce a structured plan
+    - Identify risks and mitigations
+    - Deliver next-step recommendations
+
+- devops-engineer
+  Description: Specialist agent for devops-engineer tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - Define scope and success criteria
+    - Produce a structured plan
+    - Identify risks and mitigations
+    - Deliver next-step recommendations
+
+- documentation-writer
+  Description: Specialist agent for documentation-writer tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - Define scope and success criteria
+    - Produce a structured plan
+    - Identify risks and mitigations
+    - Deliver next-step recommendations
+
+- explorer-agent
+  Description: Specialist agent for explorer-agent tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - Define scope and success criteria
+    - Produce a structured plan
+    - Identify risks and mitigations
+    - Deliver next-step recommendations
+
+- frontend-specialist
+  Description: Specialist agent for frontend-specialist tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - Define scope and success criteria
+    - Produce a structured plan
+    - Identify risks and mitigations
+    - Deliver next-step recommendations
+
+- game-developer
+  Description: Specialist agent for game-developer tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - Define scope and success criteria
+    - Produce a structured plan
+    - Identify risks and mitigations
+    - Deliver next-step recommendations
+
+- growth-seo-lead
+  Description: Specialist agent for growth-seo-lead tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - 1. Define keyword and intent map
+    - 2. Create pillar/cluster content plan
+    - 3. Specify schema and technical requirements
+    - 4. Define measurement and KPIs
+
+- mobile-developer
+  Description: Specialist agent for mobile-developer tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - Define scope and success criteria
+    - Produce a structured plan
+    - Identify risks and mitigations
+    - Deliver next-step recommendations
+
+- orchestrator
+  Description: Specialist agent for orchestrator tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - Define scope and success criteria
+    - Produce a structured plan
+    - Identify risks and mitigations
+    - Deliver next-step recommendations
+
+- penetration-tester
+  Description: Specialist agent for penetration-tester tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - Define scope and success criteria
+    - Produce a structured plan
+    - Identify risks and mitigations
+    - Deliver next-step recommendations
+
+- performance-optimizer
+  Description: Specialist agent for performance-optimizer tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - Define scope and success criteria
+    - Produce a structured plan
+    - Identify risks and mitigations
+    - Deliver next-step recommendations
+
+- project-planner
+  Description: Specialist agent for project-planner tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - Define scope and success criteria
+    - Produce a structured plan
+    - Identify risks and mitigations
+    - Deliver next-step recommendations
+
+- repo-automation-specialist
+  Description: Specialist agent for repo-automation-specialist tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - 1. Review current pipeline and gaps
+    - 2. Recommend checks and automations
+    - 3. Define release and rollback steps
+    - 4. Improve quality gates
+
+- security-auditor
+  Description: Specialist agent for security-auditor tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - Define scope and success criteria
+    - Produce a structured plan
+    - Identify risks and mitigations
+    - Deliver next-step recommendations
+
+- seo-researcher
+  Description: Specialist agent for seo-researcher tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - 1. Define goals and scope
+    - 2. Produce a structured plan
+    - 3. Identify risks and mitigations
+    - 4. Deliver next-step recommendations
+
+- seo-specialist
+  Description: Specialist agent for seo-specialist tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - Define scope and success criteria
+    - Produce a structured plan
+    - Identify risks and mitigations
+    - Deliver next-step recommendations
+
+- social-media-manager
+  Description: Specialist agent for social-media-manager tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - 1. Define goals and scope
+    - 2. Produce a structured plan
+    - 3. Identify risks and mitigations
+    - 4. Deliver next-step recommendations
+
+- sre-specialist
+  Description: Specialist agent for sre-specialist tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - 1. Define goals and scope
+    - 2. Produce a structured plan
+    - 3. Identify risks and mitigations
+    - 4. Deliver next-step recommendations
+
+- test-engineer
+  Description: Specialist agent for test-engineer tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - Define scope and success criteria
+    - Produce a structured plan
+    - Identify risks and mitigations
+    - Deliver next-step recommendations
+
+- voice-agent-designer
+  Description: Specialist agent for voice-agent-designer tasks and delivery.
+  Uses skills: (none listed)
+  Responsibilities:
+    - 1. Define scope and KPIs
+    - 2. Design intents, prompts, and fallbacks
+    - 3. Specify integrations and handoffs
+    - 4. Note compliance and risk considerations
+
+
