@@ -6,9 +6,6 @@ import { GoogleGenAI, Type, FunctionDeclaration, Modality } from "@google/genai"
 
 const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-// Whether this build has a shared Gemini key injected at build time.
-export const hasGeminiKey = Boolean(process.env.API_KEY);
-
 // Helper to handle API Key selection if 404/Not Found occurs
 const runWithRetry = async <T>(operation: () => Promise<T>): Promise<T> => {
   try {

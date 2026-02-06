@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ProjectData, ExpenseItem, CalculationResults } from '../types';
-import { estimateProjectDetails, hasGeminiKey } from '../services/geminiService';
+import { estimateProjectDetails } from '../services/geminiService';
+import { hasGeminiKey } from '../services/geminiKey';
 import { Plus, Trash2, Wand2, ChevronDown, ChevronUp, Loader2, TrendingUp, Info, Save, FolderOpen } from 'lucide-react';
 
 interface InputFormProps {

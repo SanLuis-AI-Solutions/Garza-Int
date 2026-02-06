@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { chatWithGemini, hasGeminiKey, quickAnalysis } from '../services/geminiService';
+import { hasGeminiKey } from '../services/geminiKey';
 import { MessageCircle, X, Send, Loader2, Sparkles } from 'lucide-react';
 import { chartTheme } from './charts/theme';
 
@@ -49,6 +49,7 @@ const AIChat: React.FC = () => {
     setLoading(true);
 
     try {
+      const { chatWithGemini } = await import('../services/geminiService');
       // Create history in correct format for SDK
       const history = messages.map(m => ({
         role: m.role,
@@ -74,6 +75,7 @@ const AIChat: React.FC = () => {
       }
       setLoading(true);
       try {
+          const { quickAnalysis } = await import('../services/geminiService');
           const tip = await quickAnalysis("Give me one short, high-impact tip for real estate developers regarding ROI optimization.");
           setMessages(prev => [...prev, { role: 'model', text: `Quick Tip: ${tip}` }]);
           setIsOpen(true);

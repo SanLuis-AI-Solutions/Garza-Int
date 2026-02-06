@@ -1,20 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { LayoutDashboard, PenTool, Table, Image as ImageIcon, Globe, LogOut, UserCheck } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { AppTab } from './types';
-import Visualizer from './components/Visualizer';
-import MarketAnalysis from './components/MarketAnalysis';
-import AIChat from './components/AIChat';
-import AdminApprovals from './components/AdminApprovals';
 import AiNotConfigured from './components/AiNotConfigured';
 import { supabase } from './services/supabaseClient';
-import { hasGeminiKey } from './services/geminiService';
+import { hasGeminiKey } from './services/geminiKey';
 import { ProjectProvider, useProjects } from './contexts/ProjectContext';
 import DashboardRouter from './components/dashboards/DashboardRouter';
 import InputsRouter from './components/inputs/InputsRouter';
-import DetailRouter from './components/details/DetailRouter';
 import ProjectSwitcher from './components/projects/ProjectSwitcher';
 import NewProjectModal from './components/projects/NewProjectModal';
+
+const Visualizer = React.lazy(() => import('./components/Visualizer'));
+const MarketAnalysis = React.lazy(() => import('./components/MarketAnalysis'));
+const AIChat = React.lazy(() => import('./components/AIChat'));
+const AdminApprovals = React.lazy(() => import('./components/AdminApprovals'));
+const DetailRouter = React.lazy(() => import('./components/details/DetailRouter'));
 
 type DashboardAppProps = {
   session: Session;
@@ -183,14 +184,20 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
                   onChange={(next) => updateInputs(next)}
                 />
               )}
-              {activeTab === AppTab.SPREADSHEET && <DetailRouter results={results} />}
+              {activeTab === AppTab.SPREADSHEET && (
+                <Suspense fallback={<div className="gi-muted">Loading detail…</div>}>
+                  <DetailRouter results={results} />
+                </Suspense>
+              )}
             </>
           )}
 
           {enableVisualizer &&
             activeTab === AppTab.VISUALIZER &&
             (aiReady ? (
-              <Visualizer />
+              <Suspense fallback={<div className="gi-muted">Loading visualizer…</div>}>
+                <Visualizer />
+              </Suspense>
             ) : (
               <AiNotConfigured
                 title="AI Visualizer not configured"
@@ -200,7 +207,9 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
             ))}
           {activeTab === AppTab.MARKET &&
             (aiReady ? (
-              <MarketAnalysis />
+              <Suspense fallback={<div className="gi-muted">Loading market tools…</div>}>
+                <MarketAnalysis />
+              </Suspense>
             ) : (
               <AiNotConfigured
                 title="Market Intelligence not configured"
@@ -208,11 +217,17 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
                 description="To use Market Intelligence (web search / maps / trends), the admin must set GEMINI_API_KEY in Vercel and redeploy. If you're running inside AI Studio, you can select a paid project key."
               />
             ))}
-          {activeTab === AppTab.ADMIN && isAdmin && <AdminApprovals adminEmail={ADMIN_EMAIL} />}
+          {activeTab === AppTab.ADMIN && isAdmin && (
+            <Suspense fallback={<div className="gi-muted">Loading approvals…</div>}>
+              <AdminApprovals adminEmail={ADMIN_EMAIL} />
+            </Suspense>
+          )}
         </div>
       </main>
 
-      <AIChat />
+      <Suspense fallback={null}>
+        <AIChat />
+      </Suspense>
 
       <NewProjectModal
         open={newProjectOpen}
