@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useId, useMemo } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import type { CostCadence, CostItem } from '../../domain/strategies/types';
 
@@ -27,22 +27,52 @@ export const NumberField: React.FC<{
   prefix?: string;
   suffix?: string;
   help?: string;
-}> = ({ label, value, onChange, prefix, suffix, help }) => (
-  <div>
-    <label className="block text-sm font-medium text-white/90">{label}</label>
-    {help && <div className="mt-1 text-xs gi-muted2">{help}</div>}
-    <div className="mt-2 gi-inputGroup">
-      {prefix && <div className="gi-inputGroup__addon gi-inputGroup__addon--prefix">{prefix}</div>}
-      <input
-        type="number"
-        value={Number.isFinite(value) ? value : 0}
-        onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-        className="gi-inputGroup__input"
-      />
-      {suffix && <div className="gi-inputGroup__addon gi-inputGroup__addon--suffix">{suffix}</div>}
+  name?: string;
+  autoComplete?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+}> = ({ label, value, onChange, prefix, suffix, help, name, autoComplete, min, max, step }) => {
+  const reactId = useId();
+  const inputId = `nf_${reactId}`;
+  const helpId = help ? `${inputId}_help` : undefined;
+
+  const derivedName = (name ?? label)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+  return (
+    <div>
+      <label className="block text-sm font-medium text-white/90" htmlFor={inputId}>
+        {label}
+      </label>
+      {help && (
+        <div id={helpId} className="mt-1 text-xs gi-muted2">
+          {help}
+        </div>
+      )}
+      <div className="mt-2 gi-inputGroup">
+        {prefix && <div className="gi-inputGroup__addon gi-inputGroup__addon--prefix">{prefix}</div>}
+        <input
+          id={inputId}
+          name={derivedName}
+          autoComplete={autoComplete}
+          inputMode="decimal"
+          type="number"
+          min={min}
+          max={max}
+          step={step}
+          aria-describedby={helpId}
+          value={Number.isFinite(value) ? value : 0}
+          onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+          className="gi-inputGroup__input"
+        />
+        {suffix && <div className="gi-inputGroup__addon gi-inputGroup__addon--suffix">{suffix}</div>}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const makeId = () =>
   (globalThis.crypto as any)?.randomUUID?.() ?? `ci_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -110,8 +140,14 @@ export const CostItemsEditor: React.FC<{
             <div key={it.id} className="gi-card-flat p-3">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
                 <div className="lg:col-span-6">
-                  <label className="block text-xs font-semibold gi-muted2 uppercase tracking-wide">Name</label>
+                  <label
+                    className="block text-xs font-semibold gi-muted2 uppercase tracking-wide"
+                    htmlFor={`ci_${it.id}_name`}
+                  >
+                    Name
+                  </label>
                   <input
+                    id={`ci_${it.id}_name`}
                     type="text"
                     value={it.name ?? ''}
                     onChange={(e) => updateAt(idx, { name: e.target.value })}
@@ -122,8 +158,14 @@ export const CostItemsEditor: React.FC<{
 
                 {cadenceMode === 'all' ? (
                   <div className="lg:col-span-3">
-                    <label className="block text-xs font-semibold gi-muted2 uppercase tracking-wide">Cadence</label>
+                    <label
+                      className="block text-xs font-semibold gi-muted2 uppercase tracking-wide"
+                      htmlFor={`ci_${it.id}_cadence`}
+                    >
+                      Cadence
+                    </label>
                     <select
+                      id={`ci_${it.id}_cadence`}
                       value={(it.cadence ?? 'ONE_TIME') as CostCadence}
                       onChange={(e) => updateAt(idx, { cadence: e.target.value as CostCadence })}
                       className="mt-2 gi-input px-3 py-2 text-sm w-full"
@@ -141,11 +183,18 @@ export const CostItemsEditor: React.FC<{
                 )}
 
                 <div className="lg:col-span-2">
-                  <label className="block text-xs font-semibold gi-muted2 uppercase tracking-wide">Amount</label>
+                  <label
+                    className="block text-xs font-semibold gi-muted2 uppercase tracking-wide"
+                    htmlFor={`ci_${it.id}_amount`}
+                  >
+                    Amount
+                  </label>
                   <div className="mt-2 gi-inputGroup">
                     <div className="gi-inputGroup__addon gi-inputGroup__addon--prefix">$</div>
                     <input
+                      id={`ci_${it.id}_amount`}
                       type="number"
+                      inputMode="decimal"
                       value={Number.isFinite(it.amount) ? it.amount : 0}
                       onChange={(e) => updateAt(idx, { amount: parseFloat(e.target.value) || 0 })}
                       className="gi-inputGroup__input"

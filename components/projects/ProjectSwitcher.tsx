@@ -80,6 +80,7 @@ const ProjectSwitcher: React.FC<{
                     }}
                     className="p-2 rounded-md text-white/60 hover:text-red-200 hover:bg-red-500/10"
                     title="Delete project"
+                    aria-label={`Delete project ${p.name}`}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
