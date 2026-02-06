@@ -103,14 +103,16 @@ serve(async (req) => {
 
   const body = await req.json().catch(() => null);
   const action = String(body?.action ?? '') as Action;
-  const targetEmail = normalizeEmail(String(body?.email ?? ''));
-  if (!targetEmail || !targetEmail.includes('@')) {
-    return json(400, { error: 'Invalid email' }, cors);
-  }
+  const one = body?.email !== undefined ? [String(body?.email)] : [];
+  const many = Array.isArray(body?.emails) ? body.emails.map((x: any) => String(x)) : [];
+  const emails = [...one, ...many].map(normalizeEmail).filter((e) => e && e.includes('@'));
+  const uniqEmails = Array.from(new Set(emails));
+
+  if (!uniqEmails.length) return json(400, { error: 'Invalid email(s)' }, cors);
   if (!['approve', 'revoke', 'remove'].includes(action)) {
     return json(400, { error: 'Invalid action' }, cors);
   }
-  if (targetEmail === normalizeEmail(ADMIN_EMAIL) && action !== 'approve') {
+  if (uniqEmails.includes(normalizeEmail(ADMIN_EMAIL)) && action !== 'approve') {
     return json(400, { error: 'Cannot revoke/remove the admin email' }, cors);
   }
 
@@ -126,19 +128,16 @@ serve(async (req) => {
       });
 
   if (action === 'remove') {
-    const { error } = await dbClient.from('approved_emails').delete().eq('email', targetEmail);
+    const { error } = await dbClient.from('approved_emails').delete().in('email', uniqEmails);
     if (error) return json(500, { error: error.message }, cors);
-    return json(200, { ok: true }, cors);
+    return json(200, { ok: true, count: uniqEmails.length }, cors);
   }
 
   const approved = action === 'approve';
-  const payload = {
-    email: targetEmail,
-    approved,
-    approved_at: approved ? new Date().toISOString() : null,
-  };
+  const approvedAt = approved ? new Date().toISOString() : null;
+  const payload = uniqEmails.map((email) => ({ email, approved, approved_at: approvedAt }));
 
   const { error } = await dbClient.from('approved_emails').upsert(payload, { onConflict: 'email' });
   if (error) return json(500, { error: error.message }, cors);
-  return json(200, { ok: true }, cors);
+  return json(200, { ok: true, count: uniqEmails.length }, cors);
 });

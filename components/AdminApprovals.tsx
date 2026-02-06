@@ -28,8 +28,9 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
   const [newEmail, setNewEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
 
-  const callAdminApprovals = async (action: 'approve' | 'revoke' | 'remove', email: string) => {
+  const callAdminApprovals = async (action: 'approve' | 'revoke' | 'remove', emails: string[]) => {
     if (!supabase) return;
     const { data, error: sErr } = await supabase.auth.getSession();
     if (sErr) throw sErr;
@@ -45,7 +46,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
         'content-type': 'application/json',
         authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ action, email: normalizeEmail(email) }),
+      body: JSON.stringify({ action, emails: emails.map(normalizeEmail) }),
     });
 
     const payload = await res.json().catch(() => ({}));
@@ -69,6 +70,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
 
       if (qErr) throw qErr;
       setRows((data ?? []) as ApprovedEmailRow[]);
+      setSelected({});
     } catch (err: any) {
       setError(err?.message ?? 'Failed to load approvals');
     } finally {
@@ -95,7 +97,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     setActionMessage(null);
     setSubmitting(true);
     try {
-      await callAdminApprovals(approved ? 'approve' : 'revoke', email);
+      await callAdminApprovals(approved ? 'approve' : 'revoke', [email]);
       setActionMessage(approved ? `Approved ${normalizeEmail(email)}` : `Revoked ${normalizeEmail(email)}`);
       await refresh();
     } catch (err: any) {
@@ -110,7 +112,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     setActionMessage(null);
     setSubmitting(true);
     try {
-      await callAdminApprovals('remove', email);
+      await callAdminApprovals('remove', [email]);
       setActionMessage(`Removed ${normalizeEmail(email)}`);
       await refresh();
     } catch (err: any) {
@@ -128,6 +130,56 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
       </div>
     );
   }
+
+  const selectedEmails = Object.entries(selected)
+    .filter(([, v]) => v)
+    .map(([k]) => k);
+
+  const toggleAllVisible = (checked: boolean) => {
+    const next: Record<string, boolean> = { ...selected };
+    for (const r of filtered) next[r.email] = checked;
+    setSelected(next);
+  };
+
+  const downloadPendingCSV = () => {
+    const pending = rows.filter((r) => !r.approved);
+    const headers = ['Email', 'Requested At'];
+    const lines = pending.map((r) => [r.email, r.created_at].join(','));
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...lines].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `pending_approvals.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const bulk = async (action: 'approve' | 'revoke' | 'remove') => {
+    if (!selectedEmails.length) return;
+    if (action === 'remove') {
+      const ok = window.confirm(`Remove ${selectedEmails.length} email(s)? This deletes the rows.`);
+      if (!ok) return;
+    }
+
+    setActionMessage(null);
+    setSubmitting(true);
+    try {
+      await callAdminApprovals(action, selectedEmails);
+      setActionMessage(
+        action === 'approve'
+          ? `Approved ${selectedEmails.length} email(s)`
+          : action === 'revoke'
+          ? `Revoked ${selectedEmails.length} email(s)`
+          : `Removed ${selectedEmails.length} email(s)`
+      );
+      await refresh();
+    } catch (err: any) {
+      setError(err?.message ?? 'Bulk action failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="gi-card p-6">
@@ -166,7 +218,50 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
               <option value="approved">Approved</option>
               <option value="all">All</option>
             </select>
+            <button
+              type="button"
+              onClick={downloadPendingCSV}
+              disabled={loading || submitting}
+              className="w-full md:w-auto px-3 py-2 gi-btn gi-btn-secondary text-sm disabled:opacity-60"
+              title="Export a CSV of all pending emails"
+            >
+              Export Pending CSV
+            </button>
           </div>
+
+          {selectedEmails.length > 0 && (
+            <div className="mt-4 gi-card-flat p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="text-sm gi-muted">
+                Selected: <span className="font-semibold text-white/90">{selectedEmails.length}</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => bulk('approve')}
+                  className="px-3 py-2 gi-btn gi-btn-primary text-xs disabled:opacity-60 font-semibold"
+                >
+                  Approve Selected
+                </button>
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => bulk('revoke')}
+                  className="px-3 py-2 gi-btn gi-btn-secondary text-xs disabled:opacity-60 font-semibold"
+                >
+                  Revoke Selected
+                </button>
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => bulk('remove')}
+                  className="px-3 py-2 gi-btn gi-btn-danger text-xs disabled:opacity-60 font-semibold"
+                >
+                  Remove Selected
+                </button>
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="mt-4 text-sm gi-card border border-red-500/30 text-red-100 rounded-xl px-3 py-2">
@@ -183,6 +278,14 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
             <table className="gi-table text-sm">
               <thead className="gi-thead">
                 <tr>
+                  <th>
+                    <input
+                      type="checkbox"
+                      aria-label="Select all visible"
+                      checked={filtered.length > 0 && filtered.every((r) => selected[r.email])}
+                      onChange={(e) => toggleAllVisible(e.target.checked)}
+                    />
+                  </th>
                   <th>Email</th>
                   <th>Status</th>
                   <th>Requested</th>
@@ -193,19 +296,27 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
               <tbody className="gi-tbody">
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="py-6 gi-muted">
+                    <td colSpan={6} className="py-6 gi-muted">
                       Loading…
                     </td>
                   </tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-6 gi-muted">
+                    <td colSpan={6} className="py-6 gi-muted">
                       No matching rows.
                     </td>
                   </tr>
                 ) : (
                   filtered.map((r) => (
                     <tr key={r.email} className="gi-trHover">
+                      <td>
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${r.email}`}
+                          checked={Boolean(selected[r.email])}
+                          onChange={(e) => setSelected((prev) => ({ ...prev, [r.email]: e.target.checked }))}
+                        />
+                      </td>
                       <td className="font-mono text-white/90">{r.email}</td>
                       <td>
                         <span

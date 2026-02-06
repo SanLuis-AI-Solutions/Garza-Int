@@ -11,6 +11,11 @@ Body:
 { "action": "approve" | "revoke" | "remove", "email": "user@company.com" }
 ```
 
+Bulk body:
+```json
+{ "action": "approve" | "revoke" | "remove", "emails": ["a@x.com", "b@x.com"] }
+```
+
 Auth:
 - Requires `Authorization: Bearer <access_token>`
 - Enforces:
