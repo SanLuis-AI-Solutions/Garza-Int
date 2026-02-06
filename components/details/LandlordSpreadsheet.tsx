@@ -8,6 +8,11 @@ const LandlordSpreadsheet: React.FC<{ results: LandlordResults }> = ({ results }
 
   const visible = useMemo(() => results.cashFlow.slice(0, viewLimit), [results.cashFlow, viewLimit]);
 
+  const horizons = [1, 5, 10, 30] as const;
+  const atYear = (year: number) => results.cashFlow[Math.min(Math.max(1, year), results.cashFlow.length) - 1];
+  const cumulativeCashFlow = (year: number) =>
+    results.cashFlow.slice(0, Math.min(Math.max(1, year), results.cashFlow.length)).reduce((s, r) => s + r.cashFlow, 0);
+
   const downloadCSV = () => {
     const headers = [
       'Year',
@@ -51,6 +56,42 @@ const LandlordSpreadsheet: React.FC<{ results: LandlordResults }> = ({ results }
     document.body.removeChild(link);
   };
 
+  const downloadMilestonesCSV = () => {
+    const headers = [
+      'Year',
+      'Annual Cash Flow',
+      'Cumulative Cash Flow',
+      'Property Value',
+      'Loan Balance',
+      'Equity',
+      'DSCR',
+      'Cash-on-Cash %',
+    ];
+
+    const rows = horizons.map((y) => {
+      const r = atYear(y);
+      return [
+        y,
+        r.cashFlow.toFixed(2),
+        cumulativeCashFlow(y).toFixed(2),
+        r.propertyValue.toFixed(2),
+        r.loanBalance.toFixed(2),
+        r.equity.toFixed(2),
+        Number.isFinite(r.dscr) ? r.dscr.toFixed(2) : '∞',
+        (r.cashOnCash * 100).toFixed(2) + '%',
+      ].join(',');
+    });
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `landlord_milestones_1_5_10_30.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const totalCashFlow = visible.reduce((s, r) => s + r.cashFlow, 0);
 
   return (
@@ -74,7 +115,7 @@ const LandlordSpreadsheet: React.FC<{ results: LandlordResults }> = ({ results }
 
           <div className="flex items-center gap-3">
             <div className="gi-seg w-full sm:w-auto">
-              {[5, 10, 30].map((years) => (
+              {[1, 5, 10, 30].map((years) => (
                 <button
                   key={years}
                   onClick={() => setViewLimit(years)}
@@ -86,12 +127,95 @@ const LandlordSpreadsheet: React.FC<{ results: LandlordResults }> = ({ results }
             </div>
 
             <button
+              onClick={downloadMilestonesCSV}
+              className="flex items-center space-x-2 gi-btn gi-btn-secondary px-4 py-2.5 text-sm font-semibold"
+              title="Export 1/5/10/30-year milestones"
+            >
+              <Download size={16} />
+              <span>Export Milestones</span>
+            </button>
+
+            <button
               onClick={downloadCSV}
               className="flex items-center space-x-2 gi-btn gi-btn-primary px-4 py-2.5 text-sm font-semibold"
             >
               <Download size={16} />
               <span>Export CSV</span>
             </button>
+          </div>
+        </div>
+
+        <div className="p-6 border-b border-white/10">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-bold gi-serif">Milestones (1 / 5 / 10 / 30 Years)</h3>
+              <p className="mt-1 text-sm gi-muted">
+                Quick progress view for cash flow, equity growth, and leverage over time.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 overflow-x-auto">
+            <table className="gi-table text-sm">
+              <thead className="gi-thead">
+                <tr>
+                  <th>Metric</th>
+                  {horizons.map((y) => (
+                    <th key={y} style={{ textAlign: 'right' }}>
+                      {y}y
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="gi-tbody">
+                {[
+                  {
+                    label: 'Annual Cash Flow',
+                    fmt: (v: number) => `$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+                    values: horizons.map((y) => atYear(y).cashFlow),
+                  },
+                  {
+                    label: 'Cumulative Cash Flow',
+                    fmt: (v: number) => `$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+                    values: horizons.map((y) => cumulativeCashFlow(y)),
+                  },
+                  {
+                    label: 'Property Value',
+                    fmt: (v: number) => `$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+                    values: horizons.map((y) => atYear(y).propertyValue),
+                  },
+                  {
+                    label: 'Loan Balance',
+                    fmt: (v: number) => `$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+                    values: horizons.map((y) => atYear(y).loanBalance),
+                  },
+                  {
+                    label: 'Equity',
+                    fmt: (v: number) => `$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+                    values: horizons.map((y) => atYear(y).equity),
+                  },
+                  {
+                    label: 'DSCR',
+                    fmt: (v: number) => (Number.isFinite(v) ? `${v.toFixed(2)}x` : '∞'),
+                    values: horizons.map((y) => atYear(y).dscr),
+                  },
+                  {
+                    label: 'Cash-on-Cash',
+                    fmt: (v: number) => `${(v * 100).toFixed(2)}%`,
+                    values: horizons.map((y) => atYear(y).cashOnCash),
+                  },
+                ].map((row) => (
+                  <tr key={row.label} className="gi-trHover">
+                    <td className="gi-muted">{row.label}</td>
+                    {row.values.map((v, idx) => (
+                      <td key={idx} style={{ textAlign: 'right' }} className="font-semibold text-white/95">
+                        {row.fmt(v)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 

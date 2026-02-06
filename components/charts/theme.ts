@@ -5,6 +5,6 @@ export const chartTheme = {
   tooltipBg: 'rgba(4,15,21,0.92)',
   tooltipBorder: 'rgba(255,255,255,0.14)',
   // Intentionally avoid purple; keep "estate + trust" tones.
-  palette: ['#63b27a', '#d8b56d', '#4aa3c8', '#e57463', '#8aa4b5', '#60d2c2'],
-  accentBar: '#63b27a',
+  palette: ['#63b27a', '#4aa3c8', '#69a9ff', '#e57463', '#8aa4b5', '#60d2c2'],
+  accentBar: '#4aa3c8',
 };

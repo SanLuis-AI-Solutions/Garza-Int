@@ -5,15 +5,17 @@
   --gi-bg0: #06131b;
   --gi-bg1: #08202b;
   --gi-sidebar: #040f15;
-  --gi-surface: rgba(255, 255, 255, 0.06);
-  --gi-surface2: rgba(255, 255, 255, 0.09);
-  --gi-border: rgba(255, 255, 255, 0.10);
-  --gi-border2: rgba(255, 255, 255, 0.18);
+  /* Increased contrast: surfaces are brighter and borders read more clearly. */
+  --gi-surface: rgba(255, 255, 255, 0.085);
+  --gi-surface2: rgba(255, 255, 255, 0.14);
+  --gi-border: rgba(255, 255, 255, 0.14);
+  --gi-border2: rgba(255, 255, 255, 0.26);
   --gi-text: #eaf2f7;
   --gi-muted: rgba(234, 242, 247, 0.74);
   --gi-muted2: rgba(234, 242, 247, 0.56);
   --gi-accent: #3f6b4f;
   --gi-accent-hi: #63b27a;
+  --gi-blue: #4aa3c8;
   --gi-sand: #d8b56d;
   --gi-info: #4aa3c8;
   --gi-warn: #d8b56d;
@@ -34,7 +36,7 @@ body {
   color: var(--gi-text);
   background:
     radial-gradient(1200px 700px at 10% -10%, rgba(99, 178, 122, 0.22), transparent 55%),
-    radial-gradient(900px 600px at 95% 10%, rgba(216, 181, 109, 0.14), transparent 60%),
+    radial-gradient(900px 600px at 95% 10%, rgba(74, 163, 200, 0.16), transparent 60%),
     linear-gradient(135deg, var(--gi-bg0), var(--gi-bg1));
   font-family: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
 }
@@ -45,7 +47,7 @@ body::before {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  opacity: 0.55;
+  opacity: 0.50;
   background:
     linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
@@ -82,7 +84,7 @@ body::before {
 }
 
 .gi-topbar {
-  background: rgba(4, 15, 21, 0.55);
+  background: rgba(4, 15, 21, 0.68);
   border-bottom: 1px solid rgba(255, 255, 255, 0.10);
   backdrop-filter: blur(10px);
 }
@@ -117,8 +119,8 @@ body::before {
 
 .gi-btn-secondary {
   color: var(--gi-text);
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
 }
 
 .gi-btn-secondary:hover {
@@ -159,8 +161,8 @@ body::before {
 
 .gi-input {
   color: var(--gi-text);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 12px;
   transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
 }
@@ -173,7 +175,7 @@ body::before {
   outline: none;
   border-color: rgba(99, 178, 122, 0.55);
   box-shadow: 0 0 0 3px rgba(99, 178, 122, 0.28);
-  background: rgba(255, 255, 255, 0.065);
+  background: rgba(255, 255, 255, 0.085);
 }
 
 .gi-inputGroup {
@@ -189,7 +191,7 @@ body::before {
 .gi-inputGroup:focus-within {
   border-color: rgba(99, 178, 122, 0.55);
   box-shadow: 0 0 0 3px rgba(99, 178, 122, 0.28);
-  background: rgba(255, 255, 255, 0.065);
+  background: rgba(255, 255, 255, 0.085);
 }
 
 .gi-inputGroup__addon {
@@ -225,7 +227,7 @@ body::before {
 
 .gi-kpi-value {
   color: var(--gi-text);
-  background: linear-gradient(90deg, var(--gi-sand), rgba(234, 242, 247, 0.95));
+  background: linear-gradient(90deg, rgba(74, 163, 200, 0.98), rgba(234, 242, 247, 0.96));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -251,7 +253,7 @@ body::before {
 
 .gi-nav-item--active {
   color: #06131b;
-  background: linear-gradient(135deg, rgba(216, 181, 109, 0.95), rgba(99, 178, 122, 0.92));
+  background: linear-gradient(135deg, rgba(74, 163, 200, 0.95), rgba(99, 178, 122, 0.92));
   border-color: rgba(255, 255, 255, 0.14);
 }
 
@@ -310,7 +312,7 @@ body::before {
 
 .gi-segBtn--active {
   color: #06131b;
-  background: linear-gradient(135deg, rgba(216, 181, 109, 0.95), rgba(99, 178, 122, 0.90));
+  background: linear-gradient(135deg, rgba(74, 163, 200, 0.95), rgba(99, 178, 122, 0.90));
   border-color: rgba(255, 255, 255, 0.14);
 }
 
@@ -329,7 +331,7 @@ body::before {
 
 .gi-choice--active {
   background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(216, 181, 109, 0.35);
+  border-color: rgba(74, 163, 200, 0.35);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06), var(--gi-shadow-soft);
 }
 
