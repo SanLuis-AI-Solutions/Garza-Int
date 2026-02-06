@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ProjectData, ExpenseItem, CalculationResults } from '../types';
-import { estimateProjectDetails } from '../services/geminiService';
+import { estimateProjectDetails, hasGeminiKey } from '../services/geminiService';
 import { Plus, Trash2, Wand2, ChevronDown, ChevronUp, Loader2, TrendingUp, Info, Save, FolderOpen } from 'lucide-react';
 
 interface InputFormProps {
@@ -110,10 +110,18 @@ const InputForm: React.FC<InputFormProps> = ({ data, onChange, results }) => {
   const [activeSection, setActiveSection] = useState<string | null>('land');
   const [isEstimating, setIsEstimating] = useState(false);
   const [hasSavedData, setHasSavedData] = useState(false);
+  const [aiReady, setAiReady] = useState<boolean>(hasGeminiKey);
 
   useEffect(() => {
     // Check if saved data exists on mount
     setHasSavedData(!!localStorage.getItem('propVision_project_data'));
+  }, []);
+
+  useEffect(() => {
+    if (hasGeminiKey) return;
+    const aistudio = (window as any).aistudio;
+    if (!aistudio?.hasSelectedApiKey) return;
+    aistudio.hasSelectedApiKey().then((v: any) => setAiReady(Boolean(v))).catch(() => setAiReady(false));
   }, []);
 
   const toggleSection = (section: string) => {
@@ -121,6 +129,10 @@ const InputForm: React.FC<InputFormProps> = ({ data, onChange, results }) => {
   };
 
   const handleMagicFill = async () => {
+    if (!aiReady) {
+      alert("AI Auto-Estimate isn't configured yet. Ask the admin to set GEMINI_API_KEY in Vercel and redeploy.");
+      return;
+    }
     if (!data.projectName || data.projectName.length < 5) {
       alert("Please enter a descriptive Project Name first (e.g., '4-Unit Condo in Austin, TX')");
       return;
@@ -270,8 +282,9 @@ const InputForm: React.FC<InputFormProps> = ({ data, onChange, results }) => {
         <div className="flex flex-col gap-3 min-w-[170px]">
             <button 
                 onClick={handleMagicFill}
-                disabled={isEstimating}
+                disabled={!aiReady || isEstimating}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-lg shadow-sm font-semibold flex items-center justify-center transition-all disabled:opacity-70 disabled:cursor-not-allowed w-full"
+                title={!aiReady ? "AI not configured. Admin must set GEMINI_API_KEY in Vercel." : undefined}
             >
                 {isEstimating ? <Loader2 className="animate-spin w-5 h-5 mr-2"/> : <Wand2 className="w-5 h-5 mr-2" />}
                 {isEstimating ? 'Estimating...' : 'Auto-Estimate'}

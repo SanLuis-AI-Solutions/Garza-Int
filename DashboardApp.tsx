@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { LayoutDashboard, PenTool, Table, Image as ImageIcon, Globe, Key, LogOut, UserCheck } from 'lucide-react';
+import { LayoutDashboard, PenTool, Table, Image as ImageIcon, Globe, LogOut, UserCheck } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { ProjectData, CalculationResults, AppTab } from './types';
 import { INITIAL_DATA } from './constants';
@@ -10,7 +10,9 @@ import Visualizer from './components/Visualizer';
 import MarketAnalysis from './components/MarketAnalysis';
 import AIChat from './components/AIChat';
 import AdminApprovals from './components/AdminApprovals';
+import AiNotConfigured from './components/AiNotConfigured';
 import { supabase } from './services/supabaseClient';
+import { hasGeminiKey } from './services/geminiService';
 
 type DashboardAppProps = {
   session: Session;
@@ -21,28 +23,26 @@ const ADMIN_EMAIL = 'contact@sanluisai.com';
 const DashboardApp: React.FC<DashboardAppProps> = ({ session }) => {
   const [activeTab, setActiveTab] = useState<AppTab>(AppTab.DASHBOARD);
   const [data, setData] = useState<ProjectData>(INITIAL_DATA);
-  const [apiKeySelected, setApiKeySelected] = useState(false);
+  const [aiReady, setAiReady] = useState<boolean>(hasGeminiKey);
   const isAdmin = (session.user.email ?? '').toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   // Check API Key Selection for Paid Features (Veo/High-Quality Image)
   useEffect(() => {
     const checkKey = async () => {
+      if (hasGeminiKey) {
+        setAiReady(true);
+        return;
+      }
       const aistudio = (window as any).aistudio;
       if (aistudio) {
         const hasKey = await aistudio.hasSelectedApiKey();
-        setApiKeySelected(hasKey);
+        setAiReady(Boolean(hasKey));
       }
     };
     checkKey();
   }, []);
 
-  const handleSelectKey = async () => {
-    const aistudio = (window as any).aistudio;
-    if (aistudio) {
-      await aistudio.openSelectKey();
-      setApiKeySelected(true);
-    }
-  };
+  const handleAiConfigured = () => setAiReady(true);
 
   const handleSignOut = async () => {
     if (!supabase) return;
@@ -213,29 +213,6 @@ const DashboardApp: React.FC<DashboardAppProps> = ({ session }) => {
             Sign out
           </button>
         </div>
-
-        {/* API Key Status / Selector */}
-        {!apiKeySelected && (
-          <div className="p-4 m-4 bg-slate-800 rounded-lg border border-slate-700">
-            <h4 className="text-sm font-semibold text-yellow-500 mb-2 flex items-center">
-              <Key className="w-4 h-4 mr-1" /> API Key Required
-            </h4>
-            <p className="text-xs text-slate-400 mb-3">For AI Visualizer (Pro) features, you must select a paid project.</p>
-            <button
-              onClick={handleSelectKey}
-              className="w-full bg-slate-700 hover:bg-slate-600 text-xs py-2 rounded text-white border border-slate-600"
-            >
-              Select Project Key
-            </button>
-            <a
-              href="https://ai.google.dev/gemini-api/docs/billing"
-              target="_blank"
-              className="block text-center text-[10px] text-blue-400 mt-2 hover:underline"
-            >
-              Billing Info
-            </a>
-          </div>
-        )}
       </aside>
 
       {/* Main Content */}
@@ -256,8 +233,26 @@ const DashboardApp: React.FC<DashboardAppProps> = ({ session }) => {
           {activeTab === AppTab.DASHBOARD && <Dashboard results={results} />}
           {activeTab === AppTab.INPUTS && <InputForm data={data} onChange={setData} results={results} />}
           {activeTab === AppTab.SPREADSHEET && <Spreadsheet data={data} results={results} />}
-          {activeTab === AppTab.VISUALIZER && <Visualizer />}
-          {activeTab === AppTab.MARKET && <MarketAnalysis />}
+          {activeTab === AppTab.VISUALIZER &&
+            (aiReady ? (
+              <Visualizer />
+            ) : (
+              <AiNotConfigured
+                title="AI Visualizer not configured"
+                onConfigured={handleAiConfigured}
+                description="To use the AI Visualizer, the admin must set GEMINI_API_KEY in Vercel and redeploy. If you're running inside AI Studio, you can select a paid project key."
+              />
+            ))}
+          {activeTab === AppTab.MARKET &&
+            (aiReady ? (
+              <MarketAnalysis />
+            ) : (
+              <AiNotConfigured
+                title="Market Intelligence not configured"
+                onConfigured={handleAiConfigured}
+                description="To use Market Intelligence (web search / maps / trends), the admin must set GEMINI_API_KEY in Vercel and redeploy. If you're running inside AI Studio, you can select a paid project key."
+              />
+            ))}
           {activeTab === AppTab.ADMIN && isAdmin && <AdminApprovals adminEmail={ADMIN_EMAIL} />}
         </div>
       </main>

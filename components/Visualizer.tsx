@@ -48,7 +48,7 @@ const Visualizer: React.FC = () => {
       setResultImage(img);
     } catch (e) {
       console.error(e);
-      alert('Failed to generate image. Ensure you have selected a paid API key via the "Select API Key" button.');
+      alert('AI image generation failed. If you are an admin, configure GEMINI_API_KEY (Vercel) or select a project key in AI Studio.');
     } finally {
       setLoading(false);
     }
