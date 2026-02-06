@@ -22,6 +22,7 @@ const LandlordSpreadsheet: React.FC<{ results: LandlordResults }> = ({ results }
       'NOI',
       'Debt Service',
       'Cash Flow',
+      'Cumulative Cash Flow',
       'Property Value',
       'Loan Balance',
       'Equity',
@@ -29,8 +30,10 @@ const LandlordSpreadsheet: React.FC<{ results: LandlordResults }> = ({ results }
       'Cash-on-Cash %',
     ];
 
-    const rows = visible.map((r) =>
-      [
+    let running = 0;
+    const rows = visible.map((r) => {
+      running += r.cashFlow;
+      return [
         r.year,
         r.grossRevenue.toFixed(2),
         r.effectiveRevenue.toFixed(2),
@@ -38,13 +41,14 @@ const LandlordSpreadsheet: React.FC<{ results: LandlordResults }> = ({ results }
         r.noi.toFixed(2),
         r.debtService.toFixed(2),
         r.cashFlow.toFixed(2),
+        running.toFixed(2),
         r.propertyValue.toFixed(2),
         r.loanBalance.toFixed(2),
         r.equity.toFixed(2),
         Number.isFinite(r.dscr) ? r.dscr.toFixed(2) : '∞',
         (r.cashOnCash * 100).toFixed(2) + '%',
-      ].join(',')
-    );
+      ].join(',');
+    });
 
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
     const encodedUri = encodeURI(csvContent);
@@ -115,7 +119,7 @@ const LandlordSpreadsheet: React.FC<{ results: LandlordResults }> = ({ results }
 
           <div className="flex items-center gap-3">
             <div className="gi-seg w-full sm:w-auto">
-              {[1, 5, 10, 30].map((years) => (
+              {[10, 30].map((years) => (
                 <button
                   key={years}
                   onClick={() => setViewLimit(years)}
@@ -229,13 +233,18 @@ const LandlordSpreadsheet: React.FC<{ results: LandlordResults }> = ({ results }
                 <th style={{ textAlign: 'right' }}>NOI</th>
                 <th style={{ textAlign: 'right' }}>Debt</th>
                 <th style={{ textAlign: 'right' }}>Cash Flow</th>
+                <th style={{ textAlign: 'right' }}>Cum CF</th>
                 <th style={{ textAlign: 'right' }}>DSCR</th>
                 <th style={{ textAlign: 'right' }}>CoC</th>
+                <th style={{ textAlign: 'right' }}>Value</th>
+                <th style={{ textAlign: 'right' }}>Loan</th>
                 <th style={{ textAlign: 'right' }}>Equity</th>
               </tr>
             </thead>
             <tbody className="gi-tbody">
-              {visible.map((r) => (
+              {visible.map((r, idx) => {
+                const cum = visible.slice(0, idx + 1).reduce((s, rr) => s + rr.cashFlow, 0);
+                return (
                 <tr key={r.year} className="gi-trHover">
                   <td className="gi-stickyLeft font-semibold" style={{ zIndex: 5 }}>Year {r.year}</td>
                   <td style={{ textAlign: 'right' }}>${r.effectiveRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
@@ -245,11 +254,17 @@ const LandlordSpreadsheet: React.FC<{ results: LandlordResults }> = ({ results }
                   <td style={{ textAlign: 'right' }} className={`font-semibold ${r.cashFlow >= 0 ? 'text-emerald-200' : 'text-red-200'}`}>
                     {r.cashFlow < 0 ? '-' : ''}${Math.abs(r.cashFlow).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </td>
+                  <td style={{ textAlign: 'right' }} className="gi-muted">
+                    ${cum.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </td>
                   <td style={{ textAlign: 'right' }} className="gi-muted">{Number.isFinite(r.dscr) ? r.dscr.toFixed(2) + 'x' : '∞'}</td>
                   <td style={{ textAlign: 'right' }} className="gi-muted">{(r.cashOnCash * 100).toFixed(2)}%</td>
+                  <td style={{ textAlign: 'right' }}>${r.propertyValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                  <td style={{ textAlign: 'right' }}>${r.loanBalance.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
                   <td style={{ textAlign: 'right' }}>${r.equity.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
             <tfoot>
               <tr>
@@ -259,6 +274,9 @@ const LandlordSpreadsheet: React.FC<{ results: LandlordResults }> = ({ results }
                 <td style={{ textAlign: 'right' }} className="gi-muted">-</td>
                 <td style={{ textAlign: 'right' }} className="gi-muted">-</td>
                 <td style={{ textAlign: 'right' }} className="font-semibold">${totalCashFlow.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                <td style={{ textAlign: 'right' }} className="gi-muted">-</td>
+                <td style={{ textAlign: 'right' }} className="gi-muted">-</td>
+                <td style={{ textAlign: 'right' }} className="gi-muted">-</td>
                 <td style={{ textAlign: 'right' }} className="gi-muted">-</td>
                 <td style={{ textAlign: 'right' }} className="gi-muted">-</td>
                 <td style={{ textAlign: 'right' }} className="gi-muted">-</td>
