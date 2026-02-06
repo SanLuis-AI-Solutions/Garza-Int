@@ -144,11 +144,11 @@ const Visualizer: React.FC = () => {
              <label className="block text-sm font-medium text-white/90 mb-2">Prompt</label>
              <textarea 
                className="w-full gi-input px-3 py-3 text-sm h-32"
-               placeholder={
-                  activeTab === 'generate' ? "A modern minimalist house with a pool..." : 
-                  activeTab === 'edit' ? "Add a swimming pool to the backyard..." :
-                  "Describe the condition of this property..."
-               }
+                  placeholder={
+                  activeTab === 'generate' ? "A modern minimalist house with a pool…" : 
+                  activeTab === 'edit' ? "Add a swimming pool to the backyard…" :
+                  "Describe the condition of this property…"
+                  }
                value={prompt}
                onChange={(e) => setPrompt(e.target.value)}
              />
@@ -170,7 +170,7 @@ const Visualizer: React.FC = () => {
          {loading ? (
            <div className="text-white flex flex-col items-center">
              <Loader2 className="w-12 h-12 animate-spin mb-4" style={{ color: 'rgba(216,181,109,0.85)' }} />
-             <p className="gi-muted">Processing with Gemini...</p>
+             <p className="gi-muted">Processing with Gemini…</p>
            </div>
          ) : resultImage ? (
            <div className="relative w-full h-full flex items-center justify-center">

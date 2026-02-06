@@ -57,7 +57,7 @@ export const NumberField: React.FC<{
         <input
           id={inputId}
           name={derivedName}
-          autoComplete={autoComplete}
+          autoComplete={autoComplete ?? 'off'}
           inputMode="decimal"
           type="number"
           min={min}
@@ -149,6 +149,7 @@ export const CostItemsEditor: React.FC<{
                   <input
                     id={`ci_${it.id}_name`}
                     type="text"
+                    autoComplete="off"
                     value={it.name ?? ''}
                     onChange={(e) => updateAt(idx, { name: e.target.value })}
                     className="mt-2 gi-input px-3 py-2 text-sm w-full"
@@ -195,6 +196,7 @@ export const CostItemsEditor: React.FC<{
                       id={`ci_${it.id}_amount`}
                       type="number"
                       inputMode="decimal"
+                      autoComplete="off"
                       value={Number.isFinite(it.amount) ? it.amount : 0}
                       onChange={(e) => updateAt(idx, { amount: parseFloat(e.target.value) || 0 })}
                       className="gi-inputGroup__input"

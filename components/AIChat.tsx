@@ -167,7 +167,7 @@ const AIChat: React.FC = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder={aiReady ? "Ask anything..." : "AI not configured"}
+                placeholder={aiReady ? "Ask anything…" : "AI not configured"}
                 className="flex-1 gi-input px-3 py-2 text-sm"
                 disabled={!aiReady}
               />

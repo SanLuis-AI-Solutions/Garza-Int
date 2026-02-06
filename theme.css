@@ -31,6 +31,10 @@ body {
   height: 100%;
 }
 
+html {
+  color-scheme: dark;
+}
+
 body {
   margin: 0;
   color: var(--gi-text);
@@ -106,6 +110,7 @@ body::before {
   border-radius: 12px;
   border: 1px solid transparent;
   transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+  touch-action: manipulation;
 }
 
 .gi-btn:focus-visible {
@@ -359,6 +364,7 @@ body::before {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 .gi-thead th {
