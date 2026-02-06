@@ -6,6 +6,7 @@ const DeveloperDetail: React.FC<{ results: DeveloperResults }> = ({ results }) =
   const horizons = [1, 5, 10, 30] as const;
   const cycleMonths = Math.max(1, results.totals.monthsToBuild);
   const scaleForYears = (years: number) => (years * 12) / cycleMonths;
+  const costLines = results.costLines ?? results.breakdown;
 
   const downloadMilestonesCSV = () => {
     const headers = [
@@ -36,6 +37,21 @@ const DeveloperDetail: React.FC<{ results: DeveloperResults }> = ({ results }) =
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
     link.setAttribute('download', `developer_milestones_1_5_10_30.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const downloadCostLinesCSV = () => {
+    const headers = ['Line', 'Amount'];
+    const rows = costLines.map((b) => [b.name, b.value.toFixed(2)].join(','));
+    const csvContent =
+      'data:text/csv;charset=utf-8,' +
+      [headers.join(','), ...rows, ['Total Project Cost', results.totals.totalProjectCost.toFixed(2)].join(',')].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `developer_cost_lines.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -143,7 +159,18 @@ const DeveloperDetail: React.FC<{ results: DeveloperResults }> = ({ results }) =
       </div>
 
       <div className="gi-card p-6">
-        <h3 className="text-lg font-bold gi-serif">Cost Lines</h3>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <h3 className="text-lg font-bold gi-serif">Cost Lines</h3>
+          <button
+            type="button"
+            onClick={downloadCostLinesCSV}
+            className="flex items-center gap-2 gi-btn gi-btn-secondary px-4 py-2.5 text-sm font-semibold"
+            title="Export cost lines CSV"
+          >
+            <Download size={16} />
+            Export Cost Lines
+          </button>
+        </div>
         <div className="mt-4 overflow-x-auto">
           <table className="gi-table text-sm">
             <thead className="gi-thead">
@@ -153,7 +180,7 @@ const DeveloperDetail: React.FC<{ results: DeveloperResults }> = ({ results }) =
               </tr>
             </thead>
             <tbody className="gi-tbody">
-              {(results.costLines ?? results.breakdown).map((b) => (
+              {costLines.map((b) => (
                 <tr key={b.name} className="gi-trHover">
                   <td>{b.name}</td>
                   <td style={{ textAlign: 'right' }} className="font-mono">
