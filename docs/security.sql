@@ -1,5 +1,7 @@
 -- Garza ROI Dashboard: server-side security (approval + MFA enforcement)
--- Run in Supabase SQL editor for the Garza ROI project.
+-- Run in Supabase SQL editor for the Garza ROI project by PASTING this file's contents.
+--
+-- NOTE: Supabase SQL editor does not support commands like `run security.sql` (that will error).
 --
 -- IMPORTANT:
 -- - This enforces approval + AAL2 (MFA) at the database layer via RLS.
@@ -195,4 +197,3 @@ using (
   and private.is_approved_user()
   and private.is_aal2()
 );
-

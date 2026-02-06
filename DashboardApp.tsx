@@ -28,6 +28,7 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
   const [aiReady, setAiReady] = useState<boolean>(hasGeminiKey);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [pendingApprovals, setPendingApprovals] = useState<number | null>(null);
   const isAdmin = (session.user.email ?? '').toLowerCase() === ADMIN_EMAIL.toLowerCase();
   const enableVisualizer = (import.meta as any).env?.VITE_ENABLE_VISUALIZER === 'true';
 
@@ -95,13 +96,53 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
     await supabase.auth.signOut();
   };
 
+  // Admin-only: show pending approval count as a quick operational cue.
+  useEffect(() => {
+    if (!supabase) return;
+    if (!isAdmin) return;
+    let mounted = true;
+
+    const refresh = async () => {
+      try {
+        const { count, error } = await supabase
+          .from('approved_emails')
+          .select('email', { count: 'exact', head: true })
+          .eq('approved', false);
+        if (error) throw error;
+        if (!mounted) return;
+        setPendingApprovals(typeof count === 'number' ? count : 0);
+      } catch {
+        if (!mounted) return;
+        setPendingApprovals(null);
+      }
+    };
+
+    refresh();
+    const t = setInterval(refresh, 45_000);
+    const onFocus = () => refresh();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      mounted = false;
+      clearInterval(t);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [isAdmin]);
+
   const navItems = [
     { id: AppTab.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
     { id: AppTab.INPUTS, label: 'Edit Inputs', icon: PenTool },
     { id: AppTab.SPREADSHEET, label: 'Detail', icon: Table },
     ...(enableVisualizer ? [{ id: AppTab.VISUALIZER, label: 'Visualizer (AI)', icon: ImageIcon }] : []),
     { id: AppTab.MARKET, label: 'Market Data (AI)', icon: Globe },
-    ...(isAdmin ? [{ id: AppTab.ADMIN, label: 'Approvals', icon: UserCheck }] : []),
+    ...(isAdmin
+      ? [
+          {
+            id: AppTab.ADMIN,
+            label: pendingApprovals === null ? 'Approvals' : pendingApprovals > 0 ? `Approvals (${pendingApprovals})` : 'Approvals',
+            icon: UserCheck,
+          },
+        ]
+      : []),
   ];
 
   useEffect(() => {
