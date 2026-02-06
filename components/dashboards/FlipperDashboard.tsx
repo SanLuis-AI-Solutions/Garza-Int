@@ -1,8 +1,9 @@
 import React from 'react';
 import type { FlipperResults } from '../../domain/strategies/types';
 import KpiGrid from './KpiGrid';
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { chartTheme } from '../charts/theme';
+import WaterfallChart from '../charts/WaterfallChart';
 
 const FlipperDashboard: React.FC<{ results: FlipperResults }> = ({ results }) => {
   return (
@@ -31,26 +32,9 @@ const FlipperDashboard: React.FC<{ results: FlipperResults }> = ({ results }) =>
         </div>
 
         <div className="gi-card p-6">
-          <h3 className="text-lg font-bold gi-serif mb-4">Profit Waterfall (Simplified)</h3>
+          <h3 className="text-lg font-bold gi-serif mb-4">Profit Waterfall</h3>
           <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={results.waterfall}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartTheme.grid} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: chartTheme.tick, fontSize: 12 }} />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: chartTheme.tick, fontSize: 12 }}
-                  tickFormatter={(val) => `$${val / 1000}k`}
-                />
-                <Tooltip
-                  formatter={(v: any) => `$${Number(v).toLocaleString()}`}
-                  contentStyle={{ background: chartTheme.tooltipBg, border: `1px solid ${chartTheme.tooltipBorder}` }}
-                  labelStyle={{ color: 'rgba(234,242,247,0.82)' }}
-                />
-                <Bar dataKey="value" fill={chartTheme.accentBar} radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <WaterfallChart steps={results.waterfall} />
           </div>
         </div>
       </div>
