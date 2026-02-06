@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { LayoutDashboard, PenTool, Table, Image as ImageIcon, Globe, Key, LogOut } from 'lucide-react';
+import { LayoutDashboard, PenTool, Table, Image as ImageIcon, Globe, Key, LogOut, UserCheck } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { ProjectData, CalculationResults, AppTab } from './types';
 import { INITIAL_DATA } from './constants';
@@ -9,16 +9,20 @@ import Spreadsheet from './components/Spreadsheet';
 import Visualizer from './components/Visualizer';
 import MarketAnalysis from './components/MarketAnalysis';
 import AIChat from './components/AIChat';
+import AdminApprovals from './components/AdminApprovals';
 import { supabase } from './services/supabaseClient';
 
 type DashboardAppProps = {
   session: Session;
 };
 
+const ADMIN_EMAIL = 'contact@sanluisai.com';
+
 const DashboardApp: React.FC<DashboardAppProps> = ({ session }) => {
   const [activeTab, setActiveTab] = useState<AppTab>(AppTab.DASHBOARD);
   const [data, setData] = useState<ProjectData>(INITIAL_DATA);
   const [apiKeySelected, setApiKeySelected] = useState(false);
+  const isAdmin = (session.user.email ?? '').toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   // Check API Key Selection for Paid Features (Veo/High-Quality Image)
   useEffect(() => {
@@ -169,6 +173,7 @@ const DashboardApp: React.FC<DashboardAppProps> = ({ session }) => {
     { id: AppTab.SPREADSHEET, label: 'Spreadsheet', icon: Table },
     { id: AppTab.VISUALIZER, label: 'Visualizer (AI)', icon: ImageIcon },
     { id: AppTab.MARKET, label: 'Market Data (AI)', icon: Globe },
+    ...(isAdmin ? [{ id: AppTab.ADMIN, label: 'Approvals', icon: UserCheck }] : []),
   ];
 
   return (
@@ -176,6 +181,7 @@ const DashboardApp: React.FC<DashboardAppProps> = ({ session }) => {
       {/* Sidebar Navigation */}
       <aside className="w-full md:w-64 bg-slate-900 text-white flex-shrink-0">
         <div className="p-6 border-b border-slate-800">
+          <img src="/garza-logo.png" alt="Garza International Properties" className="h-7 w-auto mb-3" />
           <h1 className="text-xl font-bold tracking-tight">Garza International</h1>
           <p className="text-xs text-slate-400 mt-1">Real Estate Intelligence</p>
         </div>
@@ -235,7 +241,12 @@ const DashboardApp: React.FC<DashboardAppProps> = ({ session }) => {
       {/* Main Content */}
       <main className="flex-1 h-screen overflow-y-auto">
         <header className="bg-white border-b border-slate-200 px-8 py-5 flex justify-between items-center sticky top-0 z-10">
-          <h2 className="text-2xl font-bold text-slate-800">{navItems.find((n) => n.id === activeTab)?.label}</h2>
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:inline-flex items-center justify-center rounded-lg bg-slate-900 px-3 py-2">
+              <img src="/garza-logo.png" alt="Garza International Properties" className="h-5 w-auto" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-800">{navItems.find((n) => n.id === activeTab)?.label}</h2>
+          </div>
           <div className="text-sm text-slate-500">
             Project: <span className="font-semibold text-slate-900">{data.projectName}</span>
           </div>
@@ -247,6 +258,7 @@ const DashboardApp: React.FC<DashboardAppProps> = ({ session }) => {
           {activeTab === AppTab.SPREADSHEET && <Spreadsheet data={data} results={results} />}
           {activeTab === AppTab.VISUALIZER && <Visualizer />}
           {activeTab === AppTab.MARKET && <MarketAnalysis />}
+          {activeTab === AppTab.ADMIN && isAdmin && <AdminApprovals adminEmail={ADMIN_EMAIL} />}
         </div>
       </main>
 
@@ -256,4 +268,3 @@ const DashboardApp: React.FC<DashboardAppProps> = ({ session }) => {
 };
 
 export default DashboardApp;
-

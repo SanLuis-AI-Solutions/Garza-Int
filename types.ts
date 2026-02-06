@@ -69,5 +69,6 @@ export enum AppTab {
   SPREADSHEET = 'spreadsheet',
   VISUALIZER = 'visualizer',
   MARKET = 'market',
+  ADMIN = 'admin',
   CHAT = 'chat'
 }
