@@ -18,6 +18,10 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
   const [approvalLoading, setApprovalLoading] = useState(false);
   const [approved, setApproved] = useState<boolean | null>(null);
   const [approvalError, setApprovalError] = useState<string | null>(null);
+  const requireMfa = (import.meta.env.VITE_AUTH_REQUIRE_MFA as string | undefined) === 'true';
+  const [aalLoading, setAalLoading] = useState(false);
+  const [aalError, setAalError] = useState<string | null>(null);
+  const [aal, setAal] = useState<{ currentLevel: string | null; nextLevel: string | null } | null>(null);
 
   const allowedEmails = useMemo(
     () => parseCsv(import.meta.env.VITE_AUTH_ALLOWED_EMAILS as string | undefined),
@@ -117,6 +121,41 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
     checkApproval(session);
   }, [session]);
 
+  useEffect(() => {
+    if (!supabase) return;
+    if (!requireMfa) {
+      setAal(null);
+      setAalError(null);
+      setAalLoading(false);
+      return;
+    }
+    if (!session) return;
+
+    let mounted = true;
+    setAalError(null);
+    setAalLoading(true);
+    supabase.auth.mfa
+      .getAuthenticatorAssuranceLevel()
+      .then(({ data, error }) => {
+        if (!mounted) return;
+        if (error) throw error;
+        setAal({ currentLevel: data.currentLevel, nextLevel: data.nextLevel });
+      })
+      .catch((e: any) => {
+        if (!mounted) return;
+        setAal({ currentLevel: null, nextLevel: null });
+        setAalError(e?.message ?? 'MFA check failed');
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setAalLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [requireMfa, session?.access_token]);
+
   if (!isSupabaseConfigured) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6">
@@ -176,6 +215,33 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
         }}
       />
     );
+  }
+
+  if (requireMfa) {
+    if (aalLoading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center gi-muted">
+          Checking security…{'\u00A0'}(MFA)
+        </div>
+      );
+    }
+    if (aal?.currentLevel !== 'aal2') {
+      return (
+        <MfaRequired
+          email={session.user.email ?? ''}
+          error={aalError}
+          onComplete={async () => {
+            if (!supabase) return;
+            const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+            setAal({ currentLevel: data.currentLevel, nextLevel: data.nextLevel });
+          }}
+          onSignOut={async () => {
+            if (!supabase) return;
+            await supabase.auth.signOut();
+          }}
+        />
+      );
+    }
   }
 
   return <>{children({ session })}</>;
@@ -355,6 +421,174 @@ const PendingApproval: React.FC<{
         <p className="mt-4 text-xs gi-muted2">
           Admin approval is required. Once approved, click “Check Again” or refresh the page.
         </p>
+      </div>
+    </div>
+  );
+};
+
+const MfaRequired: React.FC<{
+  email: string;
+  error: string | null;
+  onComplete: () => Promise<void>;
+  onSignOut: () => Promise<void>;
+}> = ({ email, error, onComplete, onSignOut }) => {
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [factorId, setFactorId] = useState<string | null>(null);
+  const [qrSvg, setQrSvg] = useState<string | null>(null);
+  const [secret, setSecret] = useState<string | null>(null);
+  const [code, setCode] = useState('');
+  const [mode, setMode] = useState<'verify' | 'enroll'>('verify');
+
+  useEffect(() => {
+    if (!supabase) return;
+    let mounted = true;
+    setLoading(true);
+    setLocalError(null);
+    supabase.auth.mfa
+      .listFactors()
+      .then(({ data, error }) => {
+        if (!mounted) return;
+        if (error) throw error;
+        const existing = data?.totp?.[0];
+        if (existing?.id) {
+          setFactorId(existing.id);
+          setMode('verify');
+        } else {
+          setMode('enroll');
+        }
+      })
+      .catch((e: any) => {
+        if (!mounted) return;
+        setLocalError(e?.message ?? 'Failed to load MFA factors');
+        setMode('enroll');
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleEnroll = async () => {
+    if (!supabase) return;
+    setSubmitting(true);
+    setLocalError(null);
+    try {
+      const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
+      if (error) throw error;
+      setFactorId(data.id);
+      setQrSvg(data.totp.qr_code);
+      setSecret(data.totp.secret);
+      setMode('verify');
+    } catch (e: any) {
+      setLocalError(e?.message ?? 'MFA enrollment failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    if (!supabase) return;
+    if (!factorId) return;
+    setSubmitting(true);
+    setLocalError(null);
+    try {
+      const cleaned = code.replace(/\s+/g, '');
+      const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code: cleaned });
+      if (error) throw error;
+      await onComplete();
+    } catch (e: any) {
+      setLocalError(e?.message ?? 'MFA verification failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-6">
+      <div className="w-full max-w-lg gi-card p-8">
+        <h1 className="text-xl font-bold gi-serif">Multi-Factor Authentication Required</h1>
+        <p className="mt-2 text-sm gi-muted">
+          Your account <span className="font-medium text-white/95">{email}</span> must verify an authenticator code to access the dashboard.
+        </p>
+
+        {(error || localError) && (
+          <div className="mt-4 text-sm gi-card border border-red-500/30 text-red-100 rounded-xl px-3 py-2">
+            {localError ?? error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="mt-6 gi-muted">Loading MFA setup…</div>
+        ) : (
+          <>
+            {mode === 'enroll' && (
+              <div className="mt-6">
+                <div className="text-sm gi-muted">
+                  No authenticator is enrolled yet. Click below to enable TOTP (Google Authenticator, 1Password, Authy, etc.).
+                </div>
+                <button
+                  type="button"
+                  onClick={handleEnroll}
+                  disabled={submitting}
+                  className="mt-4 w-full gi-btn gi-btn-primary disabled:opacity-60 font-semibold py-2.5"
+                >
+                  {submitting ? 'Enrolling…' : 'Enable MFA (TOTP)'}
+                </button>
+              </div>
+            )}
+
+            {mode === 'verify' && (
+              <div className="mt-6 space-y-4">
+                {qrSvg && (
+                  <div className="gi-card-flat p-4">
+                    <div className="text-sm font-semibold text-white/90">Scan QR Code</div>
+                    <div className="mt-2 rounded-xl bg-white p-3 inline-block">
+                      {/* Supabase returns an SVG string */}
+                      <div dangerouslySetInnerHTML={{ __html: qrSvg }} />
+                    </div>
+                    {secret && (
+                      <div className="mt-3 text-xs gi-muted2">
+                        Can't scan? Use this secret in your authenticator app:{' '}
+                        <span className="font-mono text-white/90">{secret}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-white/90">Authenticator Code</label>
+                  <input
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    placeholder="123456"
+                    className="mt-1 w-full gi-input px-3 py-2"
+                    autoComplete="one-time-code"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleVerify}
+                  disabled={submitting || code.trim().length < 6}
+                  className="w-full gi-btn gi-btn-primary disabled:opacity-60 font-semibold py-2.5"
+                >
+                  {submitting ? 'Verifying…' : 'Verify & Continue'}
+                </button>
+              </div>
+            )}
+
+            <button type="button" onClick={onSignOut} className="mt-4 w-full gi-btn gi-btn-secondary font-semibold py-2.5">
+              Sign Out
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
