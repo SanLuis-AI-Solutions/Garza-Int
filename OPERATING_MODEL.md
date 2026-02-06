@@ -47,6 +47,7 @@ This operating model defines how Codex should choose workflows/agents/skills/too
 6. **Document**
    - Update docs that would otherwise drift (schemas, runbooks, migrations, env examples).
    - For material design/architecture changes, add a short decision note to the relevant doc.
+   - For any production-impacting change, add a one-paragraph entry to `docs/CHANGELOG.md` and update `docs/HANDOFF.md`.
 
 ## Selection Protocol (What To Reach For First)
 ### Workflows (structure)
