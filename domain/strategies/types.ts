@@ -97,12 +97,16 @@ export type DeveloperResults = {
   breakdown: BreakdownItem[];
   waterfall: { name: string; value: number }[];
   totals: {
+    monthsToBuild: number;
     loanAmount: number;
+    sellCosts: number;
     totalProjectCost: number;
     developerSpread: number;
     netProfit: number;
     profitMargin: number;
     interestReserve: number;
+    roiOnTotalCost: number;
+    annualizedRoiOnTotalCost: number;
   };
 };
 
@@ -144,6 +148,7 @@ export type FlipperResults = {
   breakdown: BreakdownItem[];
   waterfall: { name: string; value: number }[];
   totals: {
+    projectDurationMonths: number;
     loanPrincipal: number;
     rehabTotal: number;
     interestCost: number;
@@ -152,9 +157,9 @@ export type FlipperResults = {
     netProfit: number;
     profitMargin: number;
     annualizedRoi: number;
+    cashInvested: number;
     totalCost: number;
   };
 };
 
 export type StrategyResults = DeveloperResults | LandlordResults | FlipperResults;
-

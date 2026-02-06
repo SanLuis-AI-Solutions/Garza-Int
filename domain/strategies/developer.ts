@@ -15,6 +15,8 @@ export const calculateDeveloper = (i: DeveloperInputs): DeveloperResults => {
   const developerSpread = i.arv - totalProjectCost;
   const netProfit = i.arv - sellCosts - totalProjectCost;
   const profitMargin = i.arv > 0 ? netProfit / i.arv : 0;
+  const roiOnTotalCost = totalProjectCost > 0 ? netProfit / totalProjectCost : 0;
+  const annualizedRoiOnTotalCost = roiOnTotalCost * (12 / Math.max(1, i.months_to_build));
 
   const kpis: Kpi[] = [
     { label: 'Total Project Cost', value: totalProjectCost, format: 'currency' },
@@ -49,13 +51,16 @@ export const calculateDeveloper = (i: DeveloperInputs): DeveloperResults => {
     breakdown,
     waterfall,
     totals: {
+      monthsToBuild: i.months_to_build,
       loanAmount,
+      sellCosts,
       totalProjectCost,
       developerSpread,
       netProfit,
       profitMargin,
       interestReserve,
+      roiOnTotalCost,
+      annualizedRoiOnTotalCost,
     },
   };
 };
-

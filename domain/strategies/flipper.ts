@@ -74,6 +74,7 @@ export const calculateFlipper = (i: FlipperInputs): FlipperResults => {
     breakdown,
     waterfall,
     totals: {
+      projectDurationMonths: i.project_duration_months,
       loanPrincipal,
       rehabTotal,
       interestCost,
@@ -82,8 +83,8 @@ export const calculateFlipper = (i: FlipperInputs): FlipperResults => {
       netProfit,
       profitMargin,
       annualizedRoi,
+      cashInvested,
       totalCost,
     },
   };
 };
-
