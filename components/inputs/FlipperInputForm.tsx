@@ -11,9 +11,25 @@ const FlipperInputForm: React.FC<{
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto">
+      <div className="gi-card p-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <div className="text-xs gi-muted2 uppercase tracking-wider">Strategy Inputs</div>
+            <h2 className="mt-1 text-xl font-bold gi-serif">Flipper: Fix & Flip</h2>
+            <p className="mt-1 text-sm gi-muted">
+              Model rehab, financing, and time-sensitive holding costs. Changes auto-save to your project.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className="gi-pill gi-pill--ok text-xs">Auto-saved</span>
+            <span className="gi-pill text-xs">USD</span>
+          </div>
+        </div>
+      </div>
+
       <SectionCard title="Acquisition" subtitle="Purchase and acquisition-related fees.">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <NumberField
             label="Distressed Purchase Price"
             prefix="$"
@@ -31,7 +47,7 @@ const FlipperInputForm: React.FC<{
       </SectionCard>
 
       <SectionCard title="Renovation" subtitle="Rehab budget and buffer.">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <NumberField label="Rehab Budget" prefix="$" value={inputs.rehab_budget} onChange={(v) => set('rehab_budget', v)} />
           <NumberField
             label="Flip Contingency"
@@ -44,7 +60,7 @@ const FlipperInputForm: React.FC<{
       </SectionCard>
 
       <SectionCard title="Financing (Hard Money)" subtitle="Modeled as full balance interest over duration (simple).">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <NumberField label="Interest Rate" suffix="%" value={inputs.interest_rate} onChange={(v) => set('interest_rate', v)} />
           <NumberField label="Points" suffix="pts" value={inputs.points} onChange={(v) => set('points', v)} />
           <NumberField label="Draw Fee (per draw)" prefix="$" value={inputs.draw_fees} onChange={(v) => set('draw_fees', v)} />
@@ -53,7 +69,7 @@ const FlipperInputForm: React.FC<{
       </SectionCard>
 
       <SectionCard title="Carrying Costs (Time Sensitive)" subtitle="Holding costs while rehabbing.">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <NumberField
             label="Project Duration"
             suffix="mo"
@@ -73,7 +89,7 @@ const FlipperInputForm: React.FC<{
       </SectionCard>
 
       <SectionCard title="Exit" subtitle="Sale assumptions.">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <NumberField label="ARV (After Repair Value)" prefix="$" value={inputs.arv} onChange={(v) => set('arv', v)} />
           <NumberField
             label="Selling Costs"
@@ -88,4 +104,3 @@ const FlipperInputForm: React.FC<{
 };
 
 export default FlipperInputForm;
-

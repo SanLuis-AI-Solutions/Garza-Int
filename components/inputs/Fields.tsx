@@ -6,13 +6,15 @@ export const SectionCard: React.FC<{ title: string; subtitle?: string; children:
   children,
 }) => (
   <div className="gi-card p-6">
-    <div className="flex items-start justify-between gap-4">
-      <div>
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8 items-start">
+      <div className="lg:col-span-4">
         <h3 className="text-lg font-bold gi-serif">{title}</h3>
         {subtitle && <p className="mt-1 text-sm gi-muted">{subtitle}</p>}
       </div>
+      <div className="lg:col-span-8">
+        {children}
+      </div>
     </div>
-    <div className="mt-6">{children}</div>
   </div>
 );
 

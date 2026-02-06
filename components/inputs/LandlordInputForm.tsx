@@ -11,9 +11,25 @@ const LandlordInputForm: React.FC<{
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto">
+      <div className="gi-card p-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <div className="text-xs gi-muted2 uppercase tracking-wider">Strategy Inputs</div>
+            <h2 className="mt-1 text-xl font-bold gi-serif">Landlord: Buy & Hold (Rental)</h2>
+            <p className="mt-1 text-sm gi-muted">
+              Tune acquisition, financing, and operating assumptions. Changes auto-save to your project.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className="gi-pill gi-pill--ok text-xs">Auto-saved</span>
+            <span className="gi-pill text-xs">USD</span>
+          </div>
+        </div>
+      </div>
+
       <SectionCard title="Acquisition" subtitle="Upfront purchase costs.">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <NumberField label="Purchase Price" prefix="$" value={inputs.purchase_price} onChange={(v) => set('purchase_price', v)} />
           <NumberField label="Make Ready Costs" prefix="$" value={inputs.make_ready_costs} onChange={(v) => set('make_ready_costs', v)} />
           <NumberField label="Closing Costs (Buy)" prefix="$" value={inputs.closing_costs_buy} onChange={(v) => set('closing_costs_buy', v)} />
@@ -21,7 +37,7 @@ const LandlordInputForm: React.FC<{
       </SectionCard>
 
       <SectionCard title="Financing (Mortgage)" subtitle="Amortized (30yr fixed) modeled with standard PMT.">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <NumberField
             label="Down Payment"
             suffix="%"
@@ -40,7 +56,7 @@ const LandlordInputForm: React.FC<{
       </SectionCard>
 
       <SectionCard title="Revenue" subtitle="Market rent and other income.">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <NumberField label="Gross Monthly Rent" prefix="$" value={inputs.gross_monthly_rent} onChange={(v) => set('gross_monthly_rent', v)} />
           <NumberField label="Other Income (Monthly)" prefix="$" value={inputs.other_income} onChange={(v) => set('other_income', v)} />
           <NumberField
@@ -61,7 +77,7 @@ const LandlordInputForm: React.FC<{
       </SectionCard>
 
       <SectionCard title="Operating Expenses (OpEx)" subtitle="Annual fixed costs + % reserves.">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <NumberField
             label="Property Management"
             suffix="%"
@@ -93,4 +109,3 @@ const LandlordInputForm: React.FC<{
 };
 
 export default LandlordInputForm;
-

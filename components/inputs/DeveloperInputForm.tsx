@@ -11,16 +11,32 @@ const DeveloperInputForm: React.FC<{
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto">
+      <div className="gi-card p-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <div className="text-xs gi-muted2 uppercase tracking-wider">Strategy Inputs</div>
+            <h2 className="mt-1 text-xl font-bold gi-serif">Developer: Ground-Up Development</h2>
+            <p className="mt-1 text-sm gi-muted">
+              Update land, soft and hard costs, then tune financing assumptions. Changes auto-save to your project.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className="gi-pill gi-pill--ok text-xs">Auto-saved</span>
+            <span className="gi-pill text-xs">USD</span>
+          </div>
+        </div>
+      </div>
+
       <SectionCard title="Acquisition & Soft Costs" subtitle="Land and entitlement / permitting costs.">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <NumberField label="Land Cost" prefix="$" value={inputs.land_cost} onChange={(v) => set('land_cost', v)} />
           <NumberField label="Soft Costs" prefix="$" value={inputs.soft_costs} onChange={(v) => set('soft_costs', v)} />
         </div>
       </SectionCard>
 
       <SectionCard title="Hard Costs (Vertical)" subtitle="Site work + construction budget + contingency.">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <NumberField label="Site Work" prefix="$" value={inputs.site_work} onChange={(v) => set('site_work', v)} />
           <NumberField
             label="Construction Budget"
@@ -39,7 +55,7 @@ const DeveloperInputForm: React.FC<{
       </SectionCard>
 
       <SectionCard title="Financing (Construction Loan)" subtitle="Interest-only draw note modeled by utilization %.">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <NumberField label="LTC Limit" suffix="%" value={inputs.ltc_limit} onChange={(v) => set('ltc_limit', v)} />
           <NumberField label="Interest Rate" suffix="%" value={inputs.interest_rate} onChange={(v) => set('interest_rate', v)} />
           <NumberField
@@ -60,7 +76,7 @@ const DeveloperInputForm: React.FC<{
       </SectionCard>
 
       <SectionCard title="Carrying + Timeline" subtitle="Time-based costs during the build.">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <NumberField
             label="Months to Build"
             value={inputs.months_to_build}
@@ -83,7 +99,7 @@ const DeveloperInputForm: React.FC<{
       </SectionCard>
 
       <SectionCard title="Exit" subtitle="Sale assumptions.">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <NumberField label="ARV (Sales Price)" prefix="$" value={inputs.arv} onChange={(v) => set('arv', v)} />
           <NumberField
             label="Selling Costs"
@@ -99,4 +115,3 @@ const DeveloperInputForm: React.FC<{
 };
 
 export default DeveloperInputForm;
-
