@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://garza/schemas/project-data-payload.json",
+  "title": "ProjectDataPayload",
+  "description": "Canonical shape stored in public.projects.data. Project metadata (id/owner_id/name/strategy/timestamps) is stored in the table columns.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["currency", "schemaVersion", "inputs"],
+  "properties": {
+    "currency": { "type": "string", "enum": ["USD"] },
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "inputs": {
+      "oneOf": [
+        { "$ref": "#/$defs/developerInputs" },
+        { "$ref": "#/$defs/landlordInputs" },
+        { "$ref": "#/$defs/flipperInputs" }
+      ]
+    }
+  },
+  "$defs": {
+    "developerInputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "strategy",
+        "land_cost",
+        "soft_costs",
+        "site_work",
+        "construction_budget",
+        "contingency_percent",
+        "ltc_limit",
+        "interest_rate",
+        "loan_utilization",
+        "origination_fee_points",
+        "months_to_build",
+        "holding_taxes",
+        "builders_risk_insurance",
+        "arv",
+        "selling_costs_percent"
+      ],
+      "properties": {
+        "strategy": { "const": "DEVELOPER" },
+        "land_cost": { "type": "number", "minimum": 0 },
+        "soft_costs": { "type": "number", "minimum": 0 },
+        "site_work": { "type": "number", "minimum": 0 },
+        "construction_budget": { "type": "number", "minimum": 0 },
+        "contingency_percent": { "type": "number", "minimum": 0, "maximum": 50 },
+        "ltc_limit": { "type": "number", "minimum": 0, "maximum": 100 },
+        "interest_rate": { "type": "number", "minimum": 0, "maximum": 50 },
+        "loan_utilization": { "type": "number", "minimum": 0, "maximum": 100 },
+        "origination_fee_points": { "type": "number", "minimum": 0, "maximum": 10 },
+        "months_to_build": { "type": "integer", "minimum": 1, "maximum": 60 },
+        "holding_taxes": { "type": "number", "minimum": 0 },
+        "builders_risk_insurance": { "type": "number", "minimum": 0 },
+        "arv": { "type": "number", "minimum": 0 },
+        "selling_costs_percent": { "type": "number", "minimum": 0, "maximum": 20 }
+      }
+    },
+    "landlordInputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "strategy",
+        "purchase_price",
+        "make_ready_costs",
+        "closing_costs_buy",
+        "down_payment_percent",
+        "interest_rate",
+        "amortization_years",
+        "gross_monthly_rent",
+        "other_income",
+        "vacancy_rate",
+        "annual_appreciation",
+        "property_management_percent",
+        "property_taxes_annual",
+        "landlord_insurance_annual",
+        "hoa_fees_monthly",
+        "maintenance_reserve_percent",
+        "capex_reserve_percent"
+      ],
+      "properties": {
+        "strategy": { "const": "LANDLORD" },
+        "purchase_price": { "type": "number", "minimum": 0 },
+        "make_ready_costs": { "type": "number", "minimum": 0 },
+        "closing_costs_buy": { "type": "number", "minimum": 0 },
+        "down_payment_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "interest_rate": { "type": "number", "minimum": 0, "maximum": 50 },
+        "amortization_years": { "type": "integer", "minimum": 1, "maximum": 40 },
+        "gross_monthly_rent": { "type": "number", "minimum": 0 },
+        "other_income": { "type": "number", "minimum": 0 },
+        "vacancy_rate": { "type": "number", "minimum": 0, "maximum": 50 },
+        "annual_appreciation": { "type": "number", "minimum": -20, "maximum": 50 },
+        "property_management_percent": { "type": "number", "minimum": 0, "maximum": 30 },
+        "property_taxes_annual": { "type": "number", "minimum": 0 },
+        "landlord_insurance_annual": { "type": "number", "minimum": 0 },
+        "hoa_fees_monthly": { "type": "number", "minimum": 0 },
+        "maintenance_reserve_percent": { "type": "number", "minimum": 0, "maximum": 30 },
+        "capex_reserve_percent": { "type": "number", "minimum": 0, "maximum": 30 }
+      }
+    },
+    "flipperInputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "strategy",
+        "distressed_price",
+        "wholesale_fee",
+        "arrears",
+        "rehab_budget",
+        "flip_contingency_percent",
+        "interest_rate",
+        "points",
+        "draw_fees",
+        "draw_count",
+        "project_duration_months",
+        "utilities_monthly",
+        "lawn_maintenance_monthly",
+        "property_taxes_annual",
+        "insurance_annual",
+        "arv",
+        "selling_costs_percent"
+      ],
+      "properties": {
+        "strategy": { "const": "FLIPPER" },
+        "distressed_price": { "type": "number", "minimum": 0 },
+        "wholesale_fee": { "type": "number", "minimum": 0 },
+        "arrears": { "type": "number", "minimum": 0 },
+        "rehab_budget": { "type": "number", "minimum": 0 },
+        "flip_contingency_percent": { "type": "number", "minimum": 0, "maximum": 50 },
+        "interest_rate": { "type": "number", "minimum": 0, "maximum": 50 },
+        "points": { "type": "number", "minimum": 0, "maximum": 10 },
+        "draw_fees": { "type": "number", "minimum": 0 },
+        "draw_count": { "type": "integer", "minimum": 0, "maximum": 60 },
+        "project_duration_months": { "type": "integer", "minimum": 1, "maximum": 36 },
+        "utilities_monthly": { "type": "number", "minimum": 0 },
+        "lawn_maintenance_monthly": { "type": "number", "minimum": 0 },
+        "property_taxes_annual": { "type": "number", "minimum": 0 },
+        "insurance_annual": { "type": "number", "minimum": 0 },
+        "arv": { "type": "number", "minimum": 0 },
+        "selling_costs_percent": { "type": "number", "minimum": 0, "maximum": 20 }
+      }
+    }
+  }
+}
+

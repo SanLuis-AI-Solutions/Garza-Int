@@ -1,0 +1,60 @@
+import type { DeveloperInputs, FlipperInputs, LandlordInputs } from './types';
+
+export const defaultDeveloperInputs = (): DeveloperInputs => ({
+  strategy: 'DEVELOPER',
+  land_cost: 250000,
+  soft_costs: 35000,
+  site_work: 40000,
+  construction_budget: 240000,
+  contingency_percent: 8,
+  ltc_limit: 75,
+  interest_rate: 10,
+  loan_utilization: 60,
+  origination_fee_points: 1,
+  months_to_build: 10,
+  holding_taxes: 3000,
+  builders_risk_insurance: 2500,
+  arv: 650000,
+  selling_costs_percent: 7,
+});
+
+export const defaultLandlordInputs = (): LandlordInputs => ({
+  strategy: 'LANDLORD',
+  purchase_price: 450000,
+  make_ready_costs: 8000,
+  closing_costs_buy: 9000,
+  down_payment_percent: 25,
+  interest_rate: 6.75,
+  amortization_years: 30,
+  gross_monthly_rent: 3200,
+  other_income: 0,
+  vacancy_rate: 6,
+  annual_appreciation: 3,
+  property_management_percent: 9,
+  property_taxes_annual: 4500,
+  landlord_insurance_annual: 1600,
+  hoa_fees_monthly: 0,
+  maintenance_reserve_percent: 7,
+  capex_reserve_percent: 6,
+});
+
+export const defaultFlipperInputs = (): FlipperInputs => ({
+  strategy: 'FLIPPER',
+  distressed_price: 260000,
+  wholesale_fee: 0,
+  arrears: 0,
+  rehab_budget: 65000,
+  flip_contingency_percent: 12,
+  interest_rate: 12,
+  points: 2,
+  draw_fees: 150,
+  draw_count: 6,
+  project_duration_months: 6,
+  utilities_monthly: 300,
+  lawn_maintenance_monthly: 120,
+  property_taxes_annual: 4200,
+  insurance_annual: 1800,
+  arv: 420000,
+  selling_costs_percent: 7,
+});
+

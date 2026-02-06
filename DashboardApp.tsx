@@ -1,11 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { LayoutDashboard, PenTool, Table, Image as ImageIcon, Globe, LogOut, UserCheck } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
-import { ProjectData, CalculationResults, AppTab } from './types';
-import { INITIAL_DATA } from './constants';
-import Dashboard from './components/Dashboard';
-import InputForm from './components/InputForm';
-import Spreadsheet from './components/Spreadsheet';
+import { AppTab } from './types';
 import Visualizer from './components/Visualizer';
 import MarketAnalysis from './components/MarketAnalysis';
 import AIChat from './components/AIChat';
@@ -13,6 +9,12 @@ import AdminApprovals from './components/AdminApprovals';
 import AiNotConfigured from './components/AiNotConfigured';
 import { supabase } from './services/supabaseClient';
 import { hasGeminiKey } from './services/geminiService';
+import { ProjectProvider, useProjects } from './contexts/ProjectContext';
+import DashboardRouter from './components/dashboards/DashboardRouter';
+import InputsRouter from './components/inputs/InputsRouter';
+import DetailRouter from './components/details/DetailRouter';
+import ProjectSwitcher from './components/projects/ProjectSwitcher';
+import NewProjectModal from './components/projects/NewProjectModal';
 
 type DashboardAppProps = {
   session: Session;
@@ -20,11 +22,14 @@ type DashboardAppProps = {
 
 const ADMIN_EMAIL = 'contact@sanluisai.com';
 
-const DashboardApp: React.FC<DashboardAppProps> = ({ session }) => {
+const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
   const [activeTab, setActiveTab] = useState<AppTab>(AppTab.DASHBOARD);
-  const [data, setData] = useState<ProjectData>(INITIAL_DATA);
   const [aiReady, setAiReady] = useState<boolean>(hasGeminiKey);
+  const [newProjectOpen, setNewProjectOpen] = useState(false);
   const isAdmin = (session.user.email ?? '').toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
+  const { loading, error, projects, activeProject, results, setActiveProjectId, createNewProject, removeProject, updateInputs } =
+    useProjects();
 
   // Check API Key Selection for Paid Features (Veo/High-Quality Image)
   useEffect(() => {
@@ -49,128 +54,10 @@ const DashboardApp: React.FC<DashboardAppProps> = ({ session }) => {
     await supabase.auth.signOut();
   };
 
-  // Calculation Logic
-  const results: CalculationResults = useMemo(() => {
-    // 1. Total Land
-    const landTotal = data.landCosts.purchasePrice + data.landCosts.taxes + data.landCosts.permits;
-
-    // 2. Total Construction
-    const customConstruction = data.constructionCosts.custom.reduce((sum, item) => sum + item.amount, 0);
-    const constructionTotal =
-      data.constructionCosts.materials +
-      data.constructionCosts.labor +
-      data.constructionCosts.contractorFees +
-      data.constructionCosts.contingency +
-      customConstruction;
-
-    // 3. Total Investment (Total Project Cost)
-    const totalInvestment = landTotal + constructionTotal;
-
-    // 4. Debt Service (PMT formula)
-    const r = data.financing.interestRate / 100 / 12;
-    const n = data.financing.loanTermYears * 12;
-    const monthlyPayment =
-      data.financing.loanAmount > 0
-        ? (data.financing.loanAmount * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1)
-        : 0;
-    const annualDebtService = monthlyPayment * 12;
-
-    // 5. Cash Flow Loop (Extended to 30 Years for Spreadsheet)
-    const cashFlow = [];
-
-    // Inflation / Appreciation Assumptions
-    const RENT_INFLATION = 0.02; // 2% annual rent increase
-    const EXPENSE_INFLATION = 0.02; // 2% annual expense increase
-
-    for (let year = 1; year <= 30; year++) {
-      // Appreciation
-      const propertyValue = data.revenue.estimatedResaleValue * Math.pow(1 + data.revenue.appreciationRate / 100, year);
-
-      // Inflate Rent
-      const monthlyRent = data.revenue.rentalIncomeMonthly * Math.pow(1 + RENT_INFLATION, year - 1);
-      const grossRevenue = monthlyRent * 12;
-
-      // Vacancy Loss
-      const vacancyLoss = grossRevenue * (data.operatingExpenses.vacancyRate / 100);
-      const effectiveRevenue = grossRevenue - vacancyLoss;
-
-      // Expenses
-      const customOpEx = data.operatingExpenses.custom.reduce((sum, item) => sum + item.amount, 0);
-      const opExBase =
-        data.operatingExpenses.propertyTaxesYearly +
-        data.operatingExpenses.insuranceYearly +
-        data.operatingExpenses.maintenanceYearly +
-        customOpEx;
-
-      // Inflate Expenses
-      const opEx = opExBase * Math.pow(1 + EXPENSE_INFLATION, year - 1);
-
-      const netOperatingIncome = effectiveRevenue - opEx;
-
-      // Stop debt service if loan term is exceeded
-      const currentDebtService = year <= data.financing.loanTermYears ? annualDebtService : 0;
-
-      const netCashFlow = netOperatingIncome - currentDebtService;
-
-      // Equity Calculation
-      const pObs = year * 12;
-      let remainingBalance = 0;
-      if (data.financing.loanAmount > 0 && year <= data.financing.loanTermYears) {
-        remainingBalance =
-          (data.financing.loanAmount * (Math.pow(1 + r, n) - Math.pow(1 + r, pObs))) / (Math.pow(1 + r, n) - 1);
-      }
-
-      const equity = propertyValue - remainingBalance;
-
-      cashFlow.push({
-        year,
-        revenue: effectiveRevenue,
-        expenses: opEx,
-        debtService: currentDebtService,
-        netCashFlow,
-        equity,
-      });
-    }
-
-    // 6. 5-Year Aggregates (Specific for Dashboard)
-    const cashFlow5Y = cashFlow.slice(0, 5);
-    const totalRevenue5Y = cashFlow5Y.reduce((s, c) => s + c.revenue, 0);
-    const totalExpenses5Y = cashFlow5Y.reduce((s, c) => s + c.expenses + c.debtService, 0);
-    const cumulativeNetCashFlow = cashFlow5Y.reduce((s, c) => s + c.netCashFlow, 0);
-
-    // ROI Calculation (5 Year Horizon)
-    const SELLING_COST_RATE = 0.06;
-
-    const initialCash = totalInvestment - data.financing.loanAmount;
-
-    // Year 5 Exit Scenario
-    const year5Data = cashFlow[4];
-    const grossEquity = year5Data.equity;
-    const propertyValueY5 = data.revenue.estimatedResaleValue * Math.pow(1 + data.revenue.appreciationRate / 100, 5);
-    const sellingCosts = propertyValueY5 * SELLING_COST_RATE;
-
-    const realizableEquity = grossEquity - sellingCosts;
-
-    const netProfit5Y = cumulativeNetCashFlow + realizableEquity - initialCash;
-
-    const roi = initialCash > 0 ? (netProfit5Y / initialCash) * 100 : 0;
-
-    return {
-      totalInvestment,
-      totalConstructionCost: constructionTotal,
-      monthlyLoanPayment: monthlyPayment,
-      totalRevenue5Years: totalRevenue5Y,
-      totalOperatingExpenses5Years: totalExpenses5Y,
-      netProfit5Years: netProfit5Y,
-      roi5Years: roi,
-      cashFlow,
-    };
-  }, [data]);
-
   const navItems = [
     { id: AppTab.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
     { id: AppTab.INPUTS, label: 'Edit Inputs', icon: PenTool },
-    { id: AppTab.SPREADSHEET, label: 'Spreadsheet', icon: Table },
+    { id: AppTab.SPREADSHEET, label: 'Detail', icon: Table },
     { id: AppTab.VISUALIZER, label: 'Visualizer (AI)', icon: ImageIcon },
     { id: AppTab.MARKET, label: 'Market Data (AI)', icon: Globe },
     ...(isAdmin ? [{ id: AppTab.ADMIN, label: 'Approvals', icon: UserCheck }] : []),
@@ -224,15 +111,55 @@ const DashboardApp: React.FC<DashboardAppProps> = ({ session }) => {
             </div>
             <h2 className="text-2xl font-bold text-slate-800">{navItems.find((n) => n.id === activeTab)?.label}</h2>
           </div>
-          <div className="text-sm text-slate-500">
-            Project: <span className="font-semibold text-slate-900">{data.projectName}</span>
-          </div>
+          <ProjectSwitcher
+            projects={projects}
+            activeProject={activeProject}
+            onSelect={setActiveProjectId}
+            onNew={() => setNewProjectOpen(true)}
+            onDelete={removeProject}
+          />
         </header>
 
         <div className="p-8 pb-32">
-          {activeTab === AppTab.DASHBOARD && <Dashboard results={results} />}
-          {activeTab === AppTab.INPUTS && <InputForm data={data} onChange={setData} results={results} />}
-          {activeTab === AppTab.SPREADSHEET && <Spreadsheet data={data} results={results} />}
+          {loading && (
+            <div className="text-slate-600">Loading projects…</div>
+          )}
+          {!loading && error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+              {error}
+            </div>
+          )}
+
+          {!loading && !activeProject && (
+            <div className="max-w-2xl bg-white border border-slate-200 rounded-2xl shadow-sm p-8">
+              <h3 className="text-xl font-bold text-slate-900">Create Your First Project</h3>
+              <p className="mt-2 text-sm text-slate-600">
+                Choose a strategy to unlock the correct inputs, math, and dashboard.
+              </p>
+              <button
+                type="button"
+                onClick={() => setNewProjectOpen(true)}
+                className="mt-6 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2.5 text-sm"
+              >
+                New Project
+              </button>
+            </div>
+          )}
+
+          {!loading && activeProject && results && (
+            <>
+              {activeTab === AppTab.DASHBOARD && <DashboardRouter results={results} />}
+              {activeTab === AppTab.INPUTS && (
+                <InputsRouter
+                  strategy={activeProject.strategy}
+                  inputs={activeProject.inputs}
+                  onChange={(next) => updateInputs(next)}
+                />
+              )}
+              {activeTab === AppTab.SPREADSHEET && <DetailRouter results={results} />}
+            </>
+          )}
+
           {activeTab === AppTab.VISUALIZER &&
             (aiReady ? (
               <Visualizer />
@@ -258,7 +185,24 @@ const DashboardApp: React.FC<DashboardAppProps> = ({ session }) => {
       </main>
 
       <AIChat />
+
+      <NewProjectModal
+        open={newProjectOpen}
+        onClose={() => setNewProjectOpen(false)}
+        onCreate={async ({ name, strategy }) => {
+          await createNewProject({ session, name, strategy });
+          setActiveTab(AppTab.INPUTS);
+        }}
+      />
     </div>
+  );
+};
+
+const DashboardApp: React.FC<DashboardAppProps> = ({ session }) => {
+  return (
+    <ProjectProvider session={session}>
+      <DashboardShell session={session} />
+    </ProjectProvider>
   );
 };
 
