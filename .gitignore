@@ -13,6 +13,10 @@ dist-ssr
 .vercel
 *.local
 
+# Supabase CLI local state
+supabase/.temp/
+supabase/.branches/
+
 # Antigravity/Codex (keep workflows + ARCHITECTURE.md tracked; ignore heavy installs)
 .agent/agents/
 .agent/skills/
