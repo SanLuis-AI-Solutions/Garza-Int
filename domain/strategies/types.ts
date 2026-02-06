@@ -1,5 +1,14 @@
 export type InvestmentStrategy = 'DEVELOPER' | 'LANDLORD' | 'FLIPPER';
 
+export type CostCadence = 'ONE_TIME' | 'MONTHLY' | 'ANNUAL';
+
+export type CostItem = {
+  id: string;
+  name: string;
+  amount: number;
+  cadence: CostCadence;
+};
+
 export type DeveloperInputs = {
   strategy: 'DEVELOPER';
   land_cost: number;
@@ -16,6 +25,13 @@ export type DeveloperInputs = {
   builders_risk_insurance: number;
   arv: number;
   selling_costs_percent: number;
+  custom?: {
+    acquisition_soft?: CostItem[];
+    hard_costs?: CostItem[];
+    financing?: CostItem[];
+    carrying?: CostItem[];
+    exit?: CostItem[];
+  };
 };
 
 export type LandlordInputs = {
@@ -36,6 +52,10 @@ export type LandlordInputs = {
   hoa_fees_monthly: number;
   maintenance_reserve_percent: number;
   capex_reserve_percent: number;
+  custom?: {
+    acquisition?: CostItem[];
+    opex?: CostItem[];
+  };
 };
 
 export type FlipperInputs = {
@@ -56,6 +76,13 @@ export type FlipperInputs = {
   insurance_annual: number;
   arv: number;
   selling_costs_percent: number;
+  custom?: {
+    acquisition?: CostItem[];
+    renovation?: CostItem[];
+    financing?: CostItem[];
+    carrying?: CostItem[];
+    exit?: CostItem[];
+  };
 };
 
 export type StrategyInputs = DeveloperInputs | LandlordInputs | FlipperInputs;
@@ -95,6 +122,7 @@ export type DeveloperResults = {
   strategy: 'DEVELOPER';
   kpis: Kpi[];
   breakdown: BreakdownItem[];
+  costLines: BreakdownItem[];
   waterfall: { name: string; value: number }[];
   totals: {
     monthsToBuild: number;
@@ -107,6 +135,7 @@ export type DeveloperResults = {
     interestReserve: number;
     roiOnTotalCost: number;
     annualizedRoiOnTotalCost: number;
+    equityRequired: number;
   };
 };
 
@@ -129,6 +158,7 @@ export type LandlordResults = {
   strategy: 'LANDLORD';
   kpis: Kpi[];
   breakdown: BreakdownItem[];
+  opexLines: BreakdownItem[];
   cashFlow: LandlordCashFlowRow[];
   totals: {
     monthlyPI: number;
@@ -146,6 +176,7 @@ export type FlipperResults = {
   strategy: 'FLIPPER';
   kpis: Kpi[];
   breakdown: BreakdownItem[];
+  costLines: BreakdownItem[];
   waterfall: { name: string; value: number }[];
   totals: {
     projectDurationMonths: number;

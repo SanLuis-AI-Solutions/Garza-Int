@@ -1,9 +1,14 @@
 import type { Kpi, LandlordCashFlowRow, LandlordInputs, LandlordResults } from './types';
 import { amortRemainingBalance, percentOf, pmt } from './finance';
+import { flattenCostItems, sumCostItems } from './costItems';
 
 export const calculateLandlord = (i: LandlordInputs): LandlordResults => {
+  const extraAcq = sumCostItems(i.custom?.acquisition, 0); // acquisition extras are treated as one-time only
+  const extraOpex = sumCostItems(i.custom?.opex, 12); // annual model: monthly -> *12, annual -> as-is
+
   const loanAmount = i.purchase_price * (1 - i.down_payment_percent / 100);
-  const cashInvested = i.purchase_price * (i.down_payment_percent / 100) + i.make_ready_costs + i.closing_costs_buy;
+  const cashInvested =
+    i.purchase_price * (i.down_payment_percent / 100) + i.make_ready_costs + i.closing_costs_buy + extraAcq;
 
   const monthlyPI = pmt(loanAmount, i.interest_rate, i.amortization_years);
   const debtServiceAnnual = monthlyPI * 12;
@@ -17,7 +22,7 @@ export const calculateLandlord = (i: LandlordInputs): LandlordResults => {
   const maint = percentOf(grossAnnual, i.maintenance_reserve_percent);
   const capex = percentOf(grossAnnual, i.capex_reserve_percent);
   const opexTotal =
-    mgmt + i.property_taxes_annual + i.landlord_insurance_annual + hoa + maint + capex;
+    mgmt + i.property_taxes_annual + i.landlord_insurance_annual + hoa + maint + capex + extraOpex;
 
   const noiAnnual = effectiveGross - opexTotal;
   const cashFlowAnnual = noiAnnual - debtServiceAnnual;
@@ -33,7 +38,18 @@ export const calculateLandlord = (i: LandlordInputs): LandlordResults => {
     { name: 'HOA', value: hoa },
     { name: 'Maintenance', value: maint },
     { name: 'CapEx', value: capex },
+    ...(extraOpex ? [{ name: 'Other OpEx', value: extraOpex }] : []),
   ];
+
+  const opexLines = [
+    { name: 'Management', value: mgmt },
+    { name: 'Property Taxes', value: i.property_taxes_annual },
+    { name: 'Insurance', value: i.landlord_insurance_annual },
+    { name: 'HOA', value: hoa },
+    { name: 'Maintenance', value: maint },
+    { name: 'CapEx', value: capex },
+    ...flattenCostItems(i.custom?.opex, 12),
+  ].filter((x) => Number.isFinite(x.value) && x.value !== 0);
 
   const cashFlow: LandlordCashFlowRow[] = [];
   for (let year = 1; year <= 30; year++) {
@@ -74,6 +90,7 @@ export const calculateLandlord = (i: LandlordInputs): LandlordResults => {
     strategy: 'LANDLORD',
     kpis,
     breakdown,
+    opexLines,
     cashFlow,
     totals: {
       monthlyPI,
@@ -87,4 +104,3 @@ export const calculateLandlord = (i: LandlordInputs): LandlordResults => {
     },
   };
 };
-

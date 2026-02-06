@@ -47,6 +47,8 @@ const FlipperDetail: React.FC<{ results: FlipperResults }> = ({ results }) => {
     { label: 'MAO (70% Rule)', value: results.totals.mao },
     { label: 'Daily Holding Cost', value: results.totals.dailyHoldingCost },
     { label: 'Interest Cost', value: results.totals.interestCost },
+    { label: 'Cash Invested', value: results.totals.cashInvested },
+    { label: 'Loan Principal (modeled)', value: results.totals.loanPrincipal },
     { label: 'Total Deal Cost', value: results.totals.totalCost },
     { label: 'Net Profit', value: results.totals.netProfit },
   ];
@@ -153,7 +155,7 @@ const FlipperDetail: React.FC<{ results: FlipperResults }> = ({ results }) => {
               </tr>
             </thead>
             <tbody className="gi-tbody">
-              {results.breakdown.map((b) => (
+              {(results.costLines ?? results.breakdown).map((b) => (
                 <tr key={b.name} className="gi-trHover">
                   <td>{b.name}</td>
                   <td style={{ textAlign: 'right' }} className="font-mono">

@@ -28,7 +28,7 @@ const ProjectSwitcher: React.FC<{
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-[360px] gi-card overflow-hidden z-20">
+        <div className="absolute right-0 mt-2 w-[360px] gi-popover overflow-hidden z-20">
           <div className="p-3 border-b border-white/10 flex items-center justify-between">
             <div className="text-xs font-semibold gi-muted uppercase tracking-wide">Projects</div>
             <button

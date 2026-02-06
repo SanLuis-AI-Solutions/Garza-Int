@@ -27,6 +27,7 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
   const [aiReady, setAiReady] = useState<boolean>(hasGeminiKey);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const isAdmin = (session.user.email ?? '').toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  const enableVisualizer = (import.meta as any).env?.VITE_ENABLE_VISUALIZER === 'true';
 
   const { loading, error, projects, activeProject, results, setActiveProjectId, createNewProject, removeProject, updateInputs } =
     useProjects();
@@ -58,10 +59,15 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
     { id: AppTab.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
     { id: AppTab.INPUTS, label: 'Edit Inputs', icon: PenTool },
     { id: AppTab.SPREADSHEET, label: 'Detail', icon: Table },
-    { id: AppTab.VISUALIZER, label: 'Visualizer (AI)', icon: ImageIcon },
+    ...(enableVisualizer ? [{ id: AppTab.VISUALIZER, label: 'Visualizer (AI)', icon: ImageIcon }] : []),
     { id: AppTab.MARKET, label: 'Market Data (AI)', icon: Globe },
     ...(isAdmin ? [{ id: AppTab.ADMIN, label: 'Approvals', icon: UserCheck }] : []),
   ];
+
+  useEffect(() => {
+    if (!enableVisualizer && activeTab === AppTab.VISUALIZER) setActiveTab(AppTab.DASHBOARD);
+    if (!isAdmin && activeTab === AppTab.ADMIN) setActiveTab(AppTab.DASHBOARD);
+  }, [enableVisualizer, isAdmin, activeTab]);
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
@@ -169,7 +175,8 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
             </>
           )}
 
-          {activeTab === AppTab.VISUALIZER &&
+          {enableVisualizer &&
+            activeTab === AppTab.VISUALIZER &&
             (aiReady ? (
               <Visualizer />
             ) : (

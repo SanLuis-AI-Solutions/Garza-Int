@@ -1,6 +1,6 @@
 import React from 'react';
-import type { FlipperInputs } from '../../domain/strategies/types';
-import { NumberField, SectionCard } from './Fields';
+import type { CostItem, FlipperInputs } from '../../domain/strategies/types';
+import { CostItemsEditor, NumberField, SectionCard } from './Fields';
 
 const FlipperInputForm: React.FC<{
   inputs: FlipperInputs;
@@ -8,6 +8,16 @@ const FlipperInputForm: React.FC<{
 }> = ({ inputs, onChange }) => {
   const set = <K extends keyof FlipperInputs>(key: K, value: FlipperInputs[K]) => {
     onChange({ ...inputs, [key]: value });
+  };
+
+  const setCustom = (key: keyof NonNullable<FlipperInputs['custom']>, items: CostItem[]) => {
+    onChange({
+      ...inputs,
+      custom: {
+        ...(inputs.custom ?? {}),
+        [key]: items,
+      },
+    });
   };
 
   return (
@@ -44,6 +54,13 @@ const FlipperInputForm: React.FC<{
           />
           <NumberField label="Arrears (Taxes/Liens)" prefix="$" value={inputs.arrears} onChange={(v) => set('arrears', v)} />
         </div>
+        <CostItemsEditor
+          label="Additional acquisition items"
+          help="Examples: buyer closing costs, title/escrow, inspections, permits to start work."
+          items={inputs.custom?.acquisition}
+          onChange={(next) => setCustom('acquisition', next)}
+          cadenceMode="one_time_only"
+        />
       </SectionCard>
 
       <SectionCard title="Renovation" subtitle="Rehab budget and buffer.">
@@ -57,6 +74,13 @@ const FlipperInputForm: React.FC<{
             help="Default 10-15%"
           />
         </div>
+        <CostItemsEditor
+          label="Additional renovation items"
+          help="Examples: dumpsters, design, staging prep, specialized trades not in rehab budget."
+          items={inputs.custom?.renovation}
+          onChange={(next) => setCustom('renovation', next)}
+          cadenceMode="one_time_only"
+        />
       </SectionCard>
 
       <SectionCard title="Financing (Hard Money)" subtitle="Modeled as full balance interest over duration (simple).">
@@ -66,6 +90,13 @@ const FlipperInputForm: React.FC<{
           <NumberField label="Draw Fee (per draw)" prefix="$" value={inputs.draw_fees} onChange={(v) => set('draw_fees', v)} />
           <NumberField label="Draw Count" value={inputs.draw_count} onChange={(v) => set('draw_count', Math.max(0, Math.round(v)))} />
         </div>
+        <CostItemsEditor
+          label="Additional financing items"
+          help="Use for lender fees not captured (points/draw fees/interest are already modeled)."
+          items={inputs.custom?.financing}
+          onChange={(next) => setCustom('financing', next)}
+          cadenceMode="one_time_only"
+        />
       </SectionCard>
 
       <SectionCard title="Carrying Costs (Time Sensitive)" subtitle="Holding costs while rehabbing.">
@@ -86,6 +117,14 @@ const FlipperInputForm: React.FC<{
           <NumberField label="Property Taxes (Annual)" prefix="$" value={inputs.property_taxes_annual} onChange={(v) => set('property_taxes_annual', v)} />
           <NumberField label="Insurance (Annual)" prefix="$" value={inputs.insurance_annual} onChange={(v) => set('insurance_annual', v)} />
         </div>
+        <CostItemsEditor
+          label="Additional carrying items"
+          help="Examples: HOA, security, permits recurring, marketing while listed (if you want it here)."
+          items={inputs.custom?.carrying}
+          onChange={(next) => setCustom('carrying', next)}
+          cadenceMode="all"
+          monthsForProration={Math.max(1, inputs.project_duration_months)}
+        />
       </SectionCard>
 
       <SectionCard title="Exit" subtitle="Sale assumptions.">
@@ -98,6 +137,13 @@ const FlipperInputForm: React.FC<{
             onChange={(v) => set('selling_costs_percent', v)}
           />
         </div>
+        <CostItemsEditor
+          label="Additional exit items"
+          help="Examples: staging, concessions, repairs requested at inspection, seller-paid fees."
+          items={inputs.custom?.exit}
+          onChange={(next) => setCustom('exit', next)}
+          cadenceMode="one_time_only"
+        />
       </SectionCard>
     </div>
   );

@@ -296,6 +296,38 @@ const LandlordSpreadsheet: React.FC<{ results: LandlordResults }> = ({ results }
           )}
         </div>
       </div>
+
+      <div className="gi-card p-6">
+        <h3 className="text-lg font-bold gi-serif">OpEx Lines (Annual)</h3>
+        <p className="mt-1 text-sm gi-muted">These feed NOI and Cash Flow calculations.</p>
+
+        <div className="mt-4 overflow-x-auto">
+          <table className="gi-table text-sm">
+            <thead className="gi-thead">
+              <tr>
+                <th>Line</th>
+                <th style={{ textAlign: 'right' }}>Amount</th>
+              </tr>
+            </thead>
+            <tbody className="gi-tbody">
+              {(results.opexLines ?? results.breakdown).map((b) => (
+                <tr key={b.name} className="gi-trHover">
+                  <td>{b.name}</td>
+                  <td style={{ textAlign: 'right' }} className="font-mono">
+                    ${b.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </td>
+                </tr>
+              ))}
+              <tr>
+                <td className="font-semibold text-white/95">Total OpEx</td>
+                <td style={{ textAlign: 'right' }} className="font-mono font-semibold text-white/95">
+                  ${atYear(1).opex.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };

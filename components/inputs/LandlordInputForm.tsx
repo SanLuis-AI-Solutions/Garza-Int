@@ -1,6 +1,6 @@
 import React from 'react';
-import type { LandlordInputs } from '../../domain/strategies/types';
-import { NumberField, SectionCard } from './Fields';
+import type { CostItem, LandlordInputs } from '../../domain/strategies/types';
+import { CostItemsEditor, NumberField, SectionCard } from './Fields';
 
 const LandlordInputForm: React.FC<{
   inputs: LandlordInputs;
@@ -8,6 +8,16 @@ const LandlordInputForm: React.FC<{
 }> = ({ inputs, onChange }) => {
   const set = <K extends keyof LandlordInputs>(key: K, value: LandlordInputs[K]) => {
     onChange({ ...inputs, [key]: value });
+  };
+
+  const setCustom = (key: keyof NonNullable<LandlordInputs['custom']>, items: CostItem[]) => {
+    onChange({
+      ...inputs,
+      custom: {
+        ...(inputs.custom ?? {}),
+        [key]: items,
+      },
+    });
   };
 
   return (
@@ -34,6 +44,13 @@ const LandlordInputForm: React.FC<{
           <NumberField label="Make Ready Costs" prefix="$" value={inputs.make_ready_costs} onChange={(v) => set('make_ready_costs', v)} />
           <NumberField label="Closing Costs (Buy)" prefix="$" value={inputs.closing_costs_buy} onChange={(v) => set('closing_costs_buy', v)} />
         </div>
+        <CostItemsEditor
+          label="Additional acquisition items"
+          help="Examples: inspection, appraisal, lender fees, title insurance, misc closing line items."
+          items={inputs.custom?.acquisition}
+          onChange={(next) => setCustom('acquisition', next)}
+          cadenceMode="one_time_only"
+        />
       </SectionCard>
 
       <SectionCard title="Financing (Mortgage)" subtitle="Amortized (30yr fixed) modeled with standard PMT.">
@@ -103,6 +120,14 @@ const LandlordInputForm: React.FC<{
             help="Big items (roof/HVAC)"
           />
         </div>
+        <CostItemsEditor
+          label="Additional OpEx items"
+          help="Use this for fixed OpEx not captured above (e.g., utilities paid by owner, landscaping, admin, pest control)."
+          items={inputs.custom?.opex}
+          onChange={(next) => setCustom('opex', next)}
+          cadenceMode="all"
+          monthsForProration={12}
+        />
       </SectionCard>
     </div>
   );

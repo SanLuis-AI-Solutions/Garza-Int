@@ -16,6 +16,13 @@ export const defaultDeveloperInputs = (): DeveloperInputs => ({
   builders_risk_insurance: 2500,
   arv: 650000,
   selling_costs_percent: 7,
+  custom: {
+    acquisition_soft: [],
+    hard_costs: [],
+    financing: [],
+    carrying: [],
+    exit: [],
+  },
 });
 
 export const defaultLandlordInputs = (): LandlordInputs => ({
@@ -36,6 +43,10 @@ export const defaultLandlordInputs = (): LandlordInputs => ({
   hoa_fees_monthly: 0,
   maintenance_reserve_percent: 7,
   capex_reserve_percent: 6,
+  custom: {
+    acquisition: [],
+    opex: [],
+  },
 });
 
 export const defaultFlipperInputs = (): FlipperInputs => ({
@@ -56,5 +67,11 @@ export const defaultFlipperInputs = (): FlipperInputs => ({
   insurance_annual: 1800,
   arv: 420000,
   selling_costs_percent: 7,
+  custom: {
+    acquisition: [],
+    renovation: [],
+    financing: [],
+    carrying: [],
+    exit: [],
+  },
 });
-

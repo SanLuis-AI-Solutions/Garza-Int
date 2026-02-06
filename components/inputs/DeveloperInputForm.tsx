@@ -1,6 +1,6 @@
 import React from 'react';
-import type { DeveloperInputs } from '../../domain/strategies/types';
-import { NumberField, SectionCard } from './Fields';
+import type { CostItem, DeveloperInputs } from '../../domain/strategies/types';
+import { CostItemsEditor, NumberField, SectionCard } from './Fields';
 
 const DeveloperInputForm: React.FC<{
   inputs: DeveloperInputs;
@@ -8,6 +8,16 @@ const DeveloperInputForm: React.FC<{
 }> = ({ inputs, onChange }) => {
   const set = <K extends keyof DeveloperInputs>(key: K, value: DeveloperInputs[K]) => {
     onChange({ ...inputs, [key]: value });
+  };
+
+  const setCustom = (key: keyof NonNullable<DeveloperInputs['custom']>, items: CostItem[]) => {
+    onChange({
+      ...inputs,
+      custom: {
+        ...(inputs.custom ?? {}),
+        [key]: items,
+      },
+    });
   };
 
   return (
@@ -33,6 +43,12 @@ const DeveloperInputForm: React.FC<{
           <NumberField label="Land Cost" prefix="$" value={inputs.land_cost} onChange={(v) => set('land_cost', v)} />
           <NumberField label="Soft Costs" prefix="$" value={inputs.soft_costs} onChange={(v) => set('soft_costs', v)} />
         </div>
+        <CostItemsEditor
+          label="Additional acquisition/soft items"
+          items={inputs.custom?.acquisition_soft}
+          onChange={(next) => setCustom('acquisition_soft', next)}
+          cadenceMode="one_time_only"
+        />
       </SectionCard>
 
       <SectionCard title="Hard Costs (Vertical)" subtitle="Site work + construction budget + contingency.">
@@ -52,6 +68,12 @@ const DeveloperInputForm: React.FC<{
             help="Default 5-10%"
           />
         </div>
+        <CostItemsEditor
+          label="Additional hard cost items"
+          items={inputs.custom?.hard_costs}
+          onChange={(next) => setCustom('hard_costs', next)}
+          cadenceMode="one_time_only"
+        />
       </SectionCard>
 
       <SectionCard title="Financing (Construction Loan)" subtitle="Interest-only draw note modeled by utilization %.">
@@ -73,6 +95,13 @@ const DeveloperInputForm: React.FC<{
             help="Points paid upfront"
           />
         </div>
+        <CostItemsEditor
+          label="Additional financing items"
+          help="Use for lender/admin fees not already modeled (origination points and interest reserve are already included)."
+          items={inputs.custom?.financing}
+          onChange={(next) => setCustom('financing', next)}
+          cadenceMode="one_time_only"
+        />
       </SectionCard>
 
       <SectionCard title="Carrying + Timeline" subtitle="Time-based costs during the build.">
@@ -96,6 +125,14 @@ const DeveloperInputForm: React.FC<{
             onChange={(v) => set('builders_risk_insurance', v)}
           />
         </div>
+        <CostItemsEditor
+          label="Additional carrying items"
+          help="Examples: utilities during build, HOA, security, misc holding costs."
+          items={inputs.custom?.carrying}
+          onChange={(next) => setCustom('carrying', next)}
+          cadenceMode="all"
+          monthsForProration={Math.max(1, inputs.months_to_build)}
+        />
       </SectionCard>
 
       <SectionCard title="Exit" subtitle="Sale assumptions.">
@@ -109,6 +146,13 @@ const DeveloperInputForm: React.FC<{
             help="Realtor commissions + closing (6-8%)"
           />
         </div>
+        <CostItemsEditor
+          label="Additional exit items"
+          help="Examples: staging, concessions, warranty, repairs requested at inspection."
+          items={inputs.custom?.exit}
+          onChange={(next) => setCustom('exit', next)}
+          cadenceMode="one_time_only"
+        />
       </SectionCard>
     </div>
   );

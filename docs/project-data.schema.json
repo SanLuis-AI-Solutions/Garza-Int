@@ -18,6 +18,17 @@
     }
   },
   "$defs": {
+    "costItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "amount", "cadence"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string" },
+        "amount": { "type": "number" },
+        "cadence": { "type": "string", "enum": ["ONE_TIME", "MONTHLY", "ANNUAL"] }
+      }
+    },
     "developerInputs": {
       "type": "object",
       "additionalProperties": false,
@@ -53,7 +64,18 @@
         "holding_taxes": { "type": "number", "minimum": 0 },
         "builders_risk_insurance": { "type": "number", "minimum": 0 },
         "arv": { "type": "number", "minimum": 0 },
-        "selling_costs_percent": { "type": "number", "minimum": 0, "maximum": 20 }
+        "selling_costs_percent": { "type": "number", "minimum": 0, "maximum": 20 },
+        "custom": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "acquisition_soft": { "type": "array", "items": { "$ref": "#/$defs/costItem" } },
+            "hard_costs": { "type": "array", "items": { "$ref": "#/$defs/costItem" } },
+            "financing": { "type": "array", "items": { "$ref": "#/$defs/costItem" } },
+            "carrying": { "type": "array", "items": { "$ref": "#/$defs/costItem" } },
+            "exit": { "type": "array", "items": { "$ref": "#/$defs/costItem" } }
+          }
+        }
       }
     },
     "landlordInputs": {
@@ -95,7 +117,15 @@
         "landlord_insurance_annual": { "type": "number", "minimum": 0 },
         "hoa_fees_monthly": { "type": "number", "minimum": 0 },
         "maintenance_reserve_percent": { "type": "number", "minimum": 0, "maximum": 30 },
-        "capex_reserve_percent": { "type": "number", "minimum": 0, "maximum": 30 }
+        "capex_reserve_percent": { "type": "number", "minimum": 0, "maximum": 30 },
+        "custom": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "acquisition": { "type": "array", "items": { "$ref": "#/$defs/costItem" } },
+            "opex": { "type": "array", "items": { "$ref": "#/$defs/costItem" } }
+          }
+        }
       }
     },
     "flipperInputs": {
@@ -137,9 +167,19 @@
         "property_taxes_annual": { "type": "number", "minimum": 0 },
         "insurance_annual": { "type": "number", "minimum": 0 },
         "arv": { "type": "number", "minimum": 0 },
-        "selling_costs_percent": { "type": "number", "minimum": 0, "maximum": 20 }
+        "selling_costs_percent": { "type": "number", "minimum": 0, "maximum": 20 },
+        "custom": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "acquisition": { "type": "array", "items": { "$ref": "#/$defs/costItem" } },
+            "renovation": { "type": "array", "items": { "$ref": "#/$defs/costItem" } },
+            "financing": { "type": "array", "items": { "$ref": "#/$defs/costItem" } },
+            "carrying": { "type": "array", "items": { "$ref": "#/$defs/costItem" } },
+            "exit": { "type": "array", "items": { "$ref": "#/$defs/costItem" } }
+          }
+        }
       }
     }
   }
 }
-

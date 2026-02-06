@@ -45,6 +45,8 @@ const DeveloperDetail: React.FC<{ results: DeveloperResults }> = ({ results }) =
     { label: 'Loan Amount (derived LTC)', value: results.totals.loanAmount },
     { label: 'Interest Reserve', value: results.totals.interestReserve },
     { label: 'Total Project Cost', value: results.totals.totalProjectCost },
+    { label: 'Equity Required (est.)', value: results.totals.equityRequired },
+    { label: 'Selling Costs', value: results.totals.sellCosts },
     { label: 'Developer Spread', value: results.totals.developerSpread },
     { label: 'Net Profit', value: results.totals.netProfit },
   ];
@@ -151,7 +153,7 @@ const DeveloperDetail: React.FC<{ results: DeveloperResults }> = ({ results }) =
               </tr>
             </thead>
             <tbody className="gi-tbody">
-              {results.breakdown.map((b) => (
+              {(results.costLines ?? results.breakdown).map((b) => (
                 <tr key={b.name} className="gi-trHover">
                   <td>{b.name}</td>
                   <td style={{ textAlign: 'right' }} className="font-mono">
