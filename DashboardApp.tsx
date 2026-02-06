@@ -11,6 +11,7 @@ import DashboardRouter from './components/dashboards/DashboardRouter';
 import InputsRouter from './components/inputs/InputsRouter';
 import ProjectSwitcher from './components/projects/ProjectSwitcher';
 import NewProjectModal from './components/projects/NewProjectModal';
+import ValidationBanner from './components/ValidationBanner';
 
 const Visualizer = React.lazy(() => import('./components/Visualizer'));
 const MarketAnalysis = React.lazy(() => import('./components/MarketAnalysis'));
@@ -329,6 +330,7 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
 
           {!loading && activeProject && results && (
             <>
+              <ValidationBanner project={activeProject} results={results} />
               {activeTab === AppTab.DASHBOARD && <DashboardRouter results={results} />}
               {activeTab === AppTab.INPUTS && (
                 <InputsRouter

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import type { LandlordResults } from '../../domain/strategies/types';
 import { Download, HelpCircle, X } from 'lucide-react';
+import AssumptionsCard from './AssumptionsCard';
 
 const LandlordSpreadsheet: React.FC<{ results: LandlordResults }> = ({ results }) => {
   const [viewLimit, setViewLimit] = useState<number>(10);
@@ -100,6 +101,15 @@ const LandlordSpreadsheet: React.FC<{ results: LandlordResults }> = ({ results }
 
   return (
     <div className="space-y-6 relative max-w-6xl mx-auto">
+      <AssumptionsCard
+        title="Landlord Assumptions"
+        items={[
+          'Management, Maintenance, and CapEx reserves are modeled as a % of gross scheduled rent (before vacancy).',
+          'Year-by-year cash flow applies rent growth and expense inflation to show trajectory over time.',
+          'Property value grows by annual appreciation; loan balance uses standard amortization for the configured term.',
+        ]}
+      />
+
       <div className="gi-card overflow-hidden">
         <div className="p-6 border-b border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-3">

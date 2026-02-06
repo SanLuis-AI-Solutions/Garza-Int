@@ -1,6 +1,7 @@
 import React from 'react';
 import { Download } from 'lucide-react';
 import type { FlipperResults } from '../../domain/strategies/types';
+import AssumptionsCard from './AssumptionsCard';
 
 const FlipperDetail: React.FC<{ results: FlipperResults }> = ({ results }) => {
   const horizons = [1, 5, 10, 30] as const;
@@ -71,6 +72,16 @@ const FlipperDetail: React.FC<{ results: FlipperResults }> = ({ results }) => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
+      <AssumptionsCard
+        title="Flipper Assumptions"
+        items={[
+          'Hard money interest is modeled on the full loan principal for the full project duration (simple, conservative).',
+          'Loan principal is modeled as Purchase + Wholesale + Arrears + Rehab (including contingency).',
+          'Daily holding cost is prorated from interest + taxes + insurance + utilities + lawn + custom carrying across the duration.',
+          'MAO uses the 70% rule: (ARV * 70%) - Rehab Total (including contingency).',
+        ]}
+      />
+
       <div className="gi-card p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>

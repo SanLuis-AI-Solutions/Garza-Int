@@ -1,6 +1,7 @@
 import React from 'react';
 import { Download } from 'lucide-react';
 import type { DeveloperResults } from '../../domain/strategies/types';
+import AssumptionsCard from './AssumptionsCard';
 
 const DeveloperDetail: React.FC<{ results: DeveloperResults }> = ({ results }) => {
   const horizons = [1, 5, 10, 30] as const;
@@ -69,6 +70,15 @@ const DeveloperDetail: React.FC<{ results: DeveloperResults }> = ({ results }) =
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
+      <AssumptionsCard
+        title="Developer Assumptions"
+        items={[
+          'Construction loan amount is derived from LTC% on Land + Soft + Hard (including contingency and custom acquisition/hard line-items).',
+          'Interest reserve uses an average utilization% rather than a month-by-month draw schedule.',
+          'Developer Spread is ARV minus Total Project Cost (pre-selling). Net Profit subtracts selling costs as well.',
+        ]}
+      />
+
       <div className="gi-card p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
