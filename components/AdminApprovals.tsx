@@ -31,6 +31,34 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
   const [submitting, setSubmitting] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
+  const callAdminApprovals = async (action: 'approve' | 'revoke' | 'remove', email: string) => {
+    if (!supabase) return;
+    const { data, error: sErr } = await supabase.auth.getSession();
+    if (sErr) throw sErr;
+    const token = data.session?.access_token;
+    if (!token) throw new Error('Missing session token');
+
+    const baseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+    if (!baseUrl) throw new Error('Missing VITE_SUPABASE_URL');
+
+    const res = await fetch(`${baseUrl}/functions/v1/admin-approvals`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ action, email: normalizeEmail(email) }),
+    });
+
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg =
+        (payload as any)?.error ??
+        `Approvals request failed (${res.status}). If the edge function is not deployed yet, deploy it as supabase/functions/admin-approvals.`;
+      throw new Error(msg);
+    }
+  };
+
   const refresh = async () => {
     if (!supabase) return;
     setError(null);
@@ -69,16 +97,8 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     setActionMessage(null);
     setSubmitting(true);
     try {
-      const payload = {
-        email: normalizeEmail(email),
-        approved,
-        approved_at: approved ? toIso(new Date()) : null,
-      };
-      const { error: uErr } = await supabase
-        .from('approved_emails')
-        .upsert(payload, { onConflict: 'email' });
-      if (uErr) throw uErr;
-      setActionMessage(approved ? `Approved ${payload.email}` : `Revoked ${payload.email}`);
+      await callAdminApprovals(approved ? 'approve' : 'revoke', email);
+      setActionMessage(approved ? `Approved ${normalizeEmail(email)}` : `Revoked ${normalizeEmail(email)}`);
       await refresh();
     } catch (err: any) {
       setError(err?.message ?? 'Update failed');
@@ -92,9 +112,8 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     setActionMessage(null);
     setSubmitting(true);
     try {
-      const { error: dErr } = await supabase.from('approved_emails').delete().eq('email', email);
-      if (dErr) throw dErr;
-      setActionMessage(`Removed ${email}`);
+      await callAdminApprovals('remove', email);
+      setActionMessage(`Removed ${normalizeEmail(email)}`);
       await refresh();
     } catch (err: any) {
       setError(err?.message ?? 'Delete failed');
