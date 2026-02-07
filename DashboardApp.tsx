@@ -12,6 +12,7 @@ import InputsRouter from './components/inputs/InputsRouter';
 import ProjectSwitcher from './components/projects/ProjectSwitcher';
 import NewProjectModal from './components/projects/NewProjectModal';
 import ValidationBanner from './components/ValidationBanner';
+import { appEnv, appVersion } from './services/appMeta';
 
 const Visualizer = React.lazy(() => import('./components/Visualizer'));
 const MarketAnalysis = React.lazy(() => import('./components/MarketAnalysis'));
@@ -34,6 +35,8 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
   const isAdmin = (session.user.email ?? '').toLowerCase() === ADMIN_EMAIL.toLowerCase();
   const enableVisualizer = (import.meta as any).env?.VITE_ENABLE_VISUALIZER === 'true';
   const supportEmail = (import.meta.env.VITE_SUPPORT_EMAIL as string | undefined) ?? ADMIN_EMAIL;
+  const versionLabel = `v${appVersion()}`;
+  const envLabel = appEnv();
 
   const { loading, error, projects, activeProject, results, setActiveProjectId, createNewProject, removeProject, updateInputs } =
     useProjects();
@@ -219,6 +222,10 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
         </nav>
 
         <div className="p-4 mt-auto">
+          <div className="text-[11px] gi-muted mb-2 flex items-center justify-between gap-2">
+            <span className="truncate" title={`Environment: ${envLabel}`}>Env: <span className="font-mono text-white/80">{envLabel}</span></span>
+            <span className="font-mono text-white/80" title="App version">{versionLabel}</span>
+          </div>
           <div className="text-[11px] gi-muted mb-2 truncate" title={session.user.email ?? undefined}>
             Signed in as <span className="text-white/90">{session.user.email}</span>
           </div>
@@ -321,6 +328,7 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
                   [
                     'Please describe what happened and attach the downloaded report ZIP.',
                     '',
+                    `App: ${versionLabel} (${envLabel})`,
                     `Project: ${activeProject.name} (${activeProject.strategy})`,
                     `URL: ${window.location.href}`,
                     `When: ${new Date().toISOString()}`,

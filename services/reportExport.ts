@@ -1,5 +1,6 @@
 import type { Project, StrategyResults } from '../domain/strategies/types';
 import { downloadText, toCsv } from './csv';
+import { appEnv, appVersion } from './appMeta';
 
 const fmtMoney = (v: number) => Number(v).toFixed(2);
 
@@ -21,6 +22,8 @@ const buildMetaCsv = (project: Project) => {
   const headers = ['Field', 'Value'];
   const rows = [
     ['exported_at', new Date().toISOString()],
+    ['app_env', appEnv()],
+    ['app_version', appVersion()],
     ['project_id', project.id],
     ['project_name', project.name],
     ['strategy', project.strategy],
@@ -314,4 +317,3 @@ export const downloadQuickKpisCsv = (args: { project: Project; results: Strategy
   const base = `${safeSlug(args.project.name)}_${args.project.strategy.toLowerCase()}`;
   downloadText({ filename: `${base}_kpis.csv`, content: buildKpiCsv(args.results), mime: 'text/csv;charset=utf-8' });
 };
-

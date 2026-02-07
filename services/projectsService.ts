@@ -5,6 +5,7 @@ import type {
   ProjectDataPayload,
   StrategyInputs,
 } from '../domain/strategies/types';
+import { appEnv } from './appMeta';
 
 type ProjectRow = {
   id: string;
@@ -33,12 +34,6 @@ const rowToProject = (row: ProjectRow): Project => {
     updatedAt: row.updated_at,
     inputs: payload.inputs,
   };
-};
-
-const appEnv = () => {
-  const fromEnv = import.meta.env.VITE_APP_ENV as string | undefined;
-  if (fromEnv) return fromEnv;
-  return import.meta.env.PROD ? 'production' : 'preview';
 };
 
 export const listProjects = async (): Promise<Project[]> => {

@@ -16,3 +16,4 @@ Tracks notable changes to the Garza ROI app so new sessions can orient quickly.
 ## 2026-02-07
 - Added admin-only **Calculator QA** screen to regression-check core formulas in-browser (`AppTab.QA`).
 - Removed the AI Chat “Quick Tip” button/feature (keeps chat only).
+- Added a simple human version label (`VITE_APP_VERSION`, e.g. `v1.5`) shown in the sidebar and included in exports/emails.
