@@ -66,36 +66,10 @@ const AIChat: React.FC = () => {
     }
   };
 
-  const handleQuickInsight = async () => {
-      // Uses flash-lite for a quick tip
-      if (!aiReady) {
-        setMessages(prev => [...prev, { role: 'model', text: "AI isn't configured for this app yet. Ask the admin to set GEMINI_API_KEY in Vercel and redeploy." }]);
-        setIsOpen(true);
-        return;
-      }
-      setLoading(true);
-      try {
-          const { quickAnalysis } = await import('../services/geminiService');
-          const tip = await quickAnalysis("Give me one short, high-impact tip for real estate developers regarding ROI optimization.");
-          setMessages(prev => [...prev, { role: 'model', text: `Quick Tip: ${tip}` }]);
-          setIsOpen(true);
-      } catch(e) { console.error(e) }
-      setLoading(false);
-  }
-
   return (
     <>
        {/* Floating Action Button */}
       <div className="fixed bottom-6 right-6 flex flex-col items-end space-y-4 z-50">
-        {!isOpen && aiReady && (
-            <button 
-                onClick={handleQuickInsight}
-                className="p-3 rounded-full gi-btn gi-btn-secondary mb-2"
-                title="Get a quick tip"
-            >
-                <Sparkles size={20} color={chartTheme.palette[1]} />
-            </button>
-        )}
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="p-4 rounded-full gi-btn gi-btn-primary shadow-lg transition-transform hover:-translate-y-0.5"

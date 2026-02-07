@@ -1,5 +1,5 @@
 import React, { Suspense, useEffect, useState } from 'react';
-import { Download, FileText, LayoutDashboard, PenTool, Table, Image as ImageIcon, Globe, LogOut, UserCheck, Bug } from 'lucide-react';
+import { Download, FileText, LayoutDashboard, PenTool, Table, Image as ImageIcon, Globe, LogOut, UserCheck, Bug, FlaskConical } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { AppTab } from './types';
 import AiNotConfigured from './components/AiNotConfigured';
@@ -18,6 +18,7 @@ const MarketAnalysis = React.lazy(() => import('./components/MarketAnalysis'));
 const AIChat = React.lazy(() => import('./components/AIChat'));
 const AdminApprovals = React.lazy(() => import('./components/AdminApprovals'));
 const DetailRouter = React.lazy(() => import('./components/details/DetailRouter'));
+const CalculatorQA = React.lazy(() => import('./components/CalculatorQA'));
 
 type DashboardAppProps = {
   session: Session;
@@ -43,7 +44,8 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
     tab === AppTab.SPREADSHEET ||
     tab === AppTab.MARKET ||
     tab === AppTab.VISUALIZER ||
-    tab === AppTab.ADMIN;
+    tab === AppTab.ADMIN ||
+    tab === AppTab.QA;
 
   const initialTab = (() => {
     try {
@@ -51,6 +53,7 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
       if (!t || !isValidTab(t)) return AppTab.DASHBOARD;
       if (t === AppTab.VISUALIZER && !enableVisualizer) return AppTab.DASHBOARD;
       if (t === AppTab.ADMIN && !isAdmin) return AppTab.DASHBOARD;
+      if (t === AppTab.QA && !isAdmin) return AppTab.DASHBOARD;
       return t;
     } catch {
       return AppTab.DASHBOARD;
@@ -138,6 +141,7 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
     { id: AppTab.MARKET, label: 'Market Data (AI)', icon: Globe },
     ...(isAdmin
       ? [
+          { id: AppTab.QA, label: 'Calculator QA', icon: FlaskConical },
           {
             id: AppTab.ADMIN,
             label: pendingApprovals === null ? 'Approvals' : pendingApprovals > 0 ? `Approvals (${pendingApprovals})` : 'Approvals',
@@ -150,6 +154,7 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
   useEffect(() => {
     if (!enableVisualizer && activeTab === AppTab.VISUALIZER) setActiveTab(AppTab.DASHBOARD);
     if (!isAdmin && activeTab === AppTab.ADMIN) setActiveTab(AppTab.DASHBOARD);
+    if (!isAdmin && activeTab === AppTab.QA) setActiveTab(AppTab.DASHBOARD);
   }, [enableVisualizer, isAdmin, activeTab]);
 
   // Back/forward navigation should restore tab + project selection.
@@ -163,6 +168,7 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
         if (t && isValidTab(t)) {
           if (t === AppTab.VISUALIZER && !enableVisualizer) setActiveTab(AppTab.DASHBOARD);
           else if (t === AppTab.ADMIN && !isAdmin) setActiveTab(AppTab.DASHBOARD);
+          else if (t === AppTab.QA && !isAdmin) setActiveTab(AppTab.DASHBOARD);
           else setActiveTab(t);
         }
         if (pid) setActiveProjectId(pid);
@@ -377,6 +383,12 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
                 </Suspense>
               )}
             </>
+          )}
+
+          {activeTab === AppTab.QA && isAdmin && (
+            <Suspense fallback={<div className="gi-muted">Loading QA…</div>}>
+              <CalculatorQA />
+            </Suspense>
           )}
 
           {enableVisualizer &&

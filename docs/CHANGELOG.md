@@ -13,3 +13,6 @@ Tracks notable changes to the Garza ROI app so new sessions can orient quickly.
 - Hardening: optional Sentry integration (via `VITE_SENTRY_DSN`).
 - Preview safety: `projects.environment` column + `VITE_APP_ENV` filter to separate preview vs production data inside the same Supabase project (free plan constraint).
 
+## 2026-02-07
+- Added admin-only **Calculator QA** screen to regression-check core formulas in-browser (`AppTab.QA`).
+- Removed the AI Chat “Quick Tip” button/feature (keeps chat only).

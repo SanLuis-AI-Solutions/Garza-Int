@@ -70,5 +70,6 @@ export enum AppTab {
   VISUALIZER = 'visualizer',
   MARKET = 'market',
   ADMIN = 'admin',
+  QA = 'qa',
   CHAT = 'chat'
 }
