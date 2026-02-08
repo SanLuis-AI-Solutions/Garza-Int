@@ -23,3 +23,4 @@ Use this when transitioning work between sessions or agents. Follow the "Documen
 1. Add an admin-only “Calculator QA” page with prefilled benchmark scenarios and expected KPI outputs (UI regression for math).
 2. Add optional notification emails on new approval requests (requires an email provider key; implement as edge function + rate limiting).
 3. Add a short production smoke checklist (login -> MFA -> create project -> export report) and capture evidence screenshots.
+4. Product decision to revisit: strategy-based paid access (entitlements) so users can be granted Landlord/Flipper/Developer access separately (block completely if not entitled; Stripe later).
