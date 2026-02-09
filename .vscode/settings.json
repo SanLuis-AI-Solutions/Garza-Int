@@ -1,0 +1,17 @@
+{
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/.vercel/**": true,
+    "**/.health/**": true,
+    "**/.agent/skills/__dup*/**": true
+  },
+  "search.exclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/.vercel/**": true,
+    "**/.health/**": true,
+    "**/.agent/skills/__dup*/**": true
+  }
+}
+
