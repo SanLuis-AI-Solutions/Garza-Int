@@ -23,3 +23,5 @@ Tracks notable changes to the Garza ROI app so new sessions can orient quickly.
 - Ops: approving an email now grants **trial access to all 3 strategies** (Developer/Landlord/Flipper) via the `admin-approvals` Edge Function.
 - Ops: Admin Approvals UI can now display access expiry and **renew** a user's access window.
 - DevX: added repo VS Code defaults to avoid watching/searching huge generated folders (faster + fewer false “pending changes”).
+- Auth: added **Magic Link** sign-in option (email OTP) for quick access.
+- Security: added **time-limited MFA bypass** (`public.mfa_exemptions`) for approved users who cannot set up TOTP; managed via Approvals UI + Edge Function and enforced by projects RLS.

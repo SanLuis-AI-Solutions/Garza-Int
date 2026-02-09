@@ -15,6 +15,12 @@ type EntitlementRow = {
   expires_at: string | null;
 };
 
+type MfaExemptionRow = {
+  email: string;
+  active: boolean;
+  expires_at: string | null;
+};
+
 const formatDateTime = (value: string | null | undefined) => {
   if (!value) return '—';
   const d = new Date(value);
@@ -27,6 +33,7 @@ const normalizeEmail = (value: string) => value.trim().toLowerCase();
 const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
   const [rows, setRows] = useState<ApprovedEmailRow[]>([]);
   const [entitlements, setEntitlements] = useState<Record<string, EntitlementRow[]>>({});
+  const [mfaExemptions, setMfaExemptions] = useState<Record<string, MfaExemptionRow | null>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,12 +42,13 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
 
   const [newEmail, setNewEmail] = useState('');
   const [renewDays, setRenewDays] = useState(14);
+  const [mfaBypassDays, setMfaBypassDays] = useState(7);
   const [submitting, setSubmitting] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
 
   const callAdminApprovals = async (args: {
-    action: 'approve' | 'revoke' | 'remove' | 'renew';
+    action: 'approve' | 'revoke' | 'remove' | 'renew' | 'mfa_bypass_grant' | 'mfa_bypass_revoke';
     emails: string[];
     days?: number;
   }) => {
@@ -109,8 +117,34 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
           }
           setEntitlements(grouped);
         }
+
+        // Optional: MFA exemptions (used for short-lived access when users can't set up TOTP).
+        const { data: mfaData, error: mfaErr } = await supabase
+          .from('mfa_exemptions')
+          .select('email,active,expires_at')
+          .in('email', emails);
+        if (mfaErr) {
+          const msg = String((mfaErr as any)?.message ?? '');
+          if (msg.includes('mfa_exemptions') && msg.includes('does not exist')) {
+            setMfaExemptions({});
+          } else {
+            throw mfaErr;
+          }
+        }
+        if (!mfaErr) {
+          const grouped: Record<string, MfaExemptionRow | null> = {};
+          for (const r of (mfaData ?? []) as MfaExemptionRow[]) {
+            grouped[normalizeEmail(r.email)] = { ...r, email: normalizeEmail(r.email) };
+          }
+          // Ensure known emails exist as keys (so UI logic is stable).
+          for (const e of emails) {
+            if (!(e in grouped)) grouped[e] = null;
+          }
+          setMfaExemptions(grouped);
+        }
       } else {
         setEntitlements({});
+        setMfaExemptions({});
       }
       setSelected({});
     } catch (err: any) {
@@ -239,6 +273,46 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     }
   };
 
+  const mfaBypassSummary = (email: string) => {
+    const row = mfaExemptions[normalizeEmail(email)] ?? null;
+    if (!row) return { active: false, expiresAt: null as string | null };
+    const now = Date.now();
+    const active = row.active && (!row.expires_at || new Date(row.expires_at).getTime() > now);
+    return { active, expiresAt: row.expires_at };
+  };
+
+  const grantMfaBypass = async (emails: string[]) => {
+    if (!supabase) return;
+    if (!emails.length) return;
+    setActionMessage(null);
+    setSubmitting(true);
+    try {
+      await callAdminApprovals({ action: 'mfa_bypass_grant', emails, days: mfaBypassDays });
+      setActionMessage(`Granted MFA bypass for ${emails.length} email(s) (+${mfaBypassDays} days)`);
+      await refresh();
+    } catch (err: any) {
+      setError(err?.message ?? 'MFA bypass grant failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const revokeMfaBypass = async (emails: string[]) => {
+    if (!supabase) return;
+    if (!emails.length) return;
+    setActionMessage(null);
+    setSubmitting(true);
+    try {
+      await callAdminApprovals({ action: 'mfa_bypass_revoke', emails });
+      setActionMessage(`Revoked MFA bypass for ${emails.length} email(s)`);
+      await refresh();
+    } catch (err: any) {
+      setError(err?.message ?? 'MFA bypass revoke failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const entitlementSummary = (email: string) => {
     const list = entitlements[normalizeEmail(email)] ?? [];
     const now = Date.now();
@@ -340,6 +414,24 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
                 >
                   Renew (+{renewDays}d)
                 </button>
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => grantMfaBypass(selectedEmails)}
+                  className="px-3 py-2 gi-btn gi-btn-secondary text-xs disabled:opacity-60 font-semibold"
+                  title="Temporary bypass for users who cannot set up MFA"
+                >
+                  MFA Bypass (+{mfaBypassDays}d)
+                </button>
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => revokeMfaBypass(selectedEmails)}
+                  className="px-3 py-2 gi-btn gi-btn-ghost text-xs disabled:opacity-60 font-semibold"
+                  title="Remove the temporary MFA bypass"
+                >
+                  Revoke MFA Bypass
+                </button>
               </div>
             </div>
           )}
@@ -391,6 +483,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
                 ) : (
                   filtered.map((r) => {
                     const access = entitlementSummary(r.email);
+                    const mfa = mfaBypassSummary(r.email);
                     return (
                       <tr key={r.email} className="gi-trHover">
                       <td>
@@ -415,6 +508,11 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
                           : access.active.length === 0
                           ? 'Expired / None'
                           : `Active until ${formatDateTime(access.maxExpiry)}`}
+                        {mfa.active && (
+                          <div className="mt-1 text-[11px] text-white/60">
+                            MFA bypass until {formatDateTime(mfa.expiresAt)}
+                          </div>
+                        )}
                       </td>
                       <td className="gi-muted">{formatDateTime(r.created_at)}</td>
                       <td className="gi-muted">{formatDateTime(r.approved_at)}</td>
@@ -448,6 +546,28 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
                               title="Extend access window"
                             >
                               Renew (+{renewDays}d)
+                            </button>
+                          )}
+                          {r.approved && !mfa.active && (
+                            <button
+                              type="button"
+                              disabled={submitting}
+                              onClick={() => grantMfaBypass([r.email])}
+                              className="px-2.5 py-1.5 gi-btn gi-btn-secondary text-xs disabled:opacity-60"
+                              title="Temporary bypass for users who cannot set up MFA"
+                            >
+                              MFA Bypass (+{mfaBypassDays}d)
+                            </button>
+                          )}
+                          {r.approved && mfa.active && (
+                            <button
+                              type="button"
+                              disabled={submitting}
+                              onClick={() => revokeMfaBypass([r.email])}
+                              className="px-2.5 py-1.5 gi-btn gi-btn-ghost text-xs disabled:opacity-60"
+                              title="Remove the temporary MFA bypass"
+                            >
+                              Revoke MFA Bypass
                             </button>
                           )}
                           <button
@@ -493,6 +613,20 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
                   onChange={(e) => {
                     const n = Number.parseInt(e.target.value || '14', 10);
                     setRenewDays(Math.max(1, Math.min(365, Number.isFinite(n) ? n : 14)));
+                  }}
+                  className="w-full gi-input px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="text-xs gi-muted whitespace-nowrap">MFA bypass days</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={30}
+                  value={mfaBypassDays}
+                  onChange={(e) => {
+                    const n = Number.parseInt(e.target.value || '7', 10);
+                    setMfaBypassDays(Math.max(1, Math.min(30, Number.isFinite(n) ? n : 7)));
                   }}
                   className="w-full gi-input px-3 py-2 text-sm"
                 />

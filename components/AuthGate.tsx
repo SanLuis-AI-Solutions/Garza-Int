@@ -13,6 +13,11 @@ type EntitlementRow = {
   expires_at: string | null;
 };
 
+type MfaExemptionRow = {
+  active: boolean;
+  expires_at: string | null;
+};
+
 type AccessInfo = {
   allowedStrategies: InvestmentStrategy[];
   trialEndsAt: string | null;
@@ -34,6 +39,9 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
   const [aalLoading, setAalLoading] = useState(false);
   const [aalError, setAalError] = useState<string | null>(null);
   const [aal, setAal] = useState<{ currentLevel: string | null; nextLevel: string | null } | null>(null);
+  const [mfaBypass, setMfaBypass] = useState<{ active: boolean; expiresAt: string | null } | null>(null);
+  const [mfaBypassLoading, setMfaBypassLoading] = useState(false);
+  const [mfaBypassError, setMfaBypassError] = useState<string | null>(null);
   const [accessLoading, setAccessLoading] = useState(false);
   const [accessError, setAccessError] = useState<string | null>(null);
   const [access, setAccess] = useState<AccessInfo | null>(null);
@@ -146,6 +154,9 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
       setAal(null);
       setAalError(null);
       setAalLoading(false);
+      setMfaBypass(null);
+      setMfaBypassError(null);
+      setMfaBypassLoading(false);
       return;
     }
     if (!session) return;
@@ -153,6 +164,9 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
     let mounted = true;
     setAalError(null);
     setAalLoading(true);
+    setMfaBypass(null);
+    setMfaBypassError(null);
+    setMfaBypassLoading(false);
     supabase.auth.mfa
       .getAuthenticatorAssuranceLevel()
       .then(({ data, error }) => {
@@ -174,6 +188,46 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
       mounted = false;
     };
   }, [requireMfa, session?.access_token]);
+
+  const checkMfaBypass = async (activeSession: Session) => {
+    if (!supabase) return false;
+    const email = (activeSession.user.email ?? '').toLowerCase();
+    if (!email) return false;
+
+    setMfaBypassError(null);
+    setMfaBypassLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('mfa_exemptions')
+        .select('active,expires_at')
+        .eq('email', activeSession.user.email ?? '')
+        .maybeSingle();
+
+      // If the table isn't deployed yet, treat as no bypass.
+      if (error) {
+        const msg = String((error as any)?.message ?? '');
+        if (msg.includes('mfa_exemptions') && msg.includes('does not exist')) {
+          setMfaBypass({ active: false, expiresAt: null });
+          return false;
+        }
+        throw error;
+      }
+
+      const row = (data ?? null) as MfaExemptionRow | null;
+      const now = Date.now();
+      const active =
+        Boolean(row?.active) && (!row?.expires_at || new Date(row.expires_at).getTime() > now);
+
+      setMfaBypass({ active, expiresAt: row?.expires_at ?? null });
+      return active;
+    } catch (err: any) {
+      setMfaBypass({ active: false, expiresAt: null });
+      setMfaBypassError(err?.message ?? 'MFA bypass check failed');
+      return false;
+    } finally {
+      setMfaBypassLoading(false);
+    }
+  };
 
   const checkEntitlements = async (activeSession: Session) => {
     if (!supabase) return;
@@ -232,9 +286,9 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
     if (!supabase) return;
     if (!session) return;
     if (approved !== true) return;
-    if (requireMfa && aal?.currentLevel !== 'aal2') return;
+    if (requireMfa && aal?.currentLevel !== 'aal2' && mfaBypass?.active !== true) return;
     checkEntitlements(session);
-  }, [session?.user?.email, session?.access_token, approved, requireMfa, aal?.currentLevel]);
+  }, [session?.user?.email, session?.access_token, approved, requireMfa, aal?.currentLevel, mfaBypass?.active]);
 
   if (!isSupabaseConfigured) {
     return (
@@ -306,21 +360,41 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
       );
     }
     if (aal?.currentLevel !== 'aal2') {
-      return (
-        <MfaRequired
-          email={session.user.email ?? ''}
-          error={aalError}
-          onComplete={async () => {
-            if (!supabase) return;
-            const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-            setAal({ currentLevel: data.currentLevel, nextLevel: data.nextLevel });
-          }}
-          onSignOut={async () => {
-            if (!supabase) return;
-            await supabase.auth.signOut();
-          }}
-        />
-      );
+      if (mfaBypassLoading) {
+        return (
+          <div className="min-h-screen flex items-center justify-center gi-muted">
+            Checking security…{'\u00A0'}(MFA Bypass)
+          </div>
+        );
+      }
+
+      // One-time bypass check per signed-in session.
+      if (mfaBypass === null && !mfaBypassLoading) {
+        checkMfaBypass(session);
+        return (
+          <div className="min-h-screen flex items-center justify-center gi-muted">
+            Checking security…{'\u00A0'}(MFA Bypass)
+          </div>
+        );
+      }
+
+      if (mfaBypass?.active !== true) {
+        return (
+          <MfaRequired
+            email={session.user.email ?? ''}
+            error={mfaBypassError ?? aalError}
+            onComplete={async () => {
+              if (!supabase) return;
+              const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+              setAal({ currentLevel: data.currentLevel, nextLevel: data.nextLevel });
+            }}
+            onSignOut={async () => {
+              if (!supabase) return;
+              await supabase.auth.signOut();
+            }}
+          />
+        );
+      }
     }
   }
 
@@ -359,6 +433,31 @@ const Login: React.FC = () => {
   const [message, setMessage] = useState<string | null>(null);
   const emailId = useId();
   const passwordId = useId();
+
+  const sendMagicLink = async () => {
+    if (!supabase) return;
+    const cleaned = email.trim();
+    if (!cleaned) {
+      setError('Enter an email first');
+      return;
+    }
+
+    setError(null);
+    setMessage(null);
+    setSubmitting(true);
+    try {
+      const { error: otpErr } = await supabase.auth.signInWithOtp({
+        email: cleaned,
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (otpErr) throw otpErr;
+      setMessage('Magic link sent. Check your email on this device and open the link to finish signing in.');
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to send magic link');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -463,6 +562,17 @@ const Login: React.FC = () => {
             >
               {submitting ? 'Working…' : isSignUp ? 'Create Account' : 'Sign In'}
             </button>
+
+            {!isSignUp && (
+              <button
+                type="button"
+                onClick={sendMagicLink}
+                disabled={submitting}
+                className="w-full gi-btn gi-btn-secondary disabled:opacity-60 font-semibold py-2.5"
+              >
+                Email Me a Magic Link
+              </button>
+            )}
           </form>
 
           <button
@@ -479,6 +589,10 @@ const Login: React.FC = () => {
 
           <p className="mt-4 text-xs gi-muted2">
             If you do not have access, contact the administrator to be added.
+          </p>
+          <p className="mt-2 text-[11px] gi-muted2">
+            Magic links require your Supabase Auth redirect URLs to include{' '}
+            <span className="font-mono text-white/80">{window.location.origin}</span>.
           </p>
         </div>
       </div>

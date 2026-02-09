@@ -133,6 +133,34 @@ as $$
   );
 $$;
 
+-- 2c) Optional: MFA exemptions (short-lived bypass for users who cannot set up TOTP)
+create table if not exists public.mfa_exemptions (
+  email text primary key,
+  active boolean not null default true,
+  expires_at timestamptz null,
+  reason text null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists mfa_exemptions_email_idx on public.mfa_exemptions (email);
+
+alter table public.mfa_exemptions enable row level security;
+
+create or replace function private.has_active_mfa_exemption()
+returns boolean
+stable
+language sql
+as $$
+  select exists (
+    select 1
+    from public.mfa_exemptions me
+    where lower(me.email) = private.auth_email()
+      and me.active = true
+      and (me.expires_at is null or me.expires_at > now())
+  );
+$$;
+
 -- Reset policies (drop all existing policies on both tables to avoid bypass)
 do $$
 declare r record;
@@ -149,6 +177,15 @@ begin
   for r in select policyname from pg_policies where schemaname = 'public' and tablename = 'user_entitlements'
   loop
     execute format('drop policy if exists %I on public.user_entitlements', r.policyname);
+  end loop;
+end $$;
+
+do $$
+declare r record;
+begin
+  for r in select policyname from pg_policies where schemaname = 'public' and tablename = 'mfa_exemptions'
+  loop
+    execute format('drop policy if exists %I on public.mfa_exemptions', r.policyname);
   end loop;
 end $$;
 
@@ -258,6 +295,50 @@ using (
   and private.is_aal2()
 );
 
+-- mfa_exemptions policies:
+-- - Users can see ONLY their own exemption row (if any)
+-- - Admin can manage all rows (requires MFA/AAL2 for mutations)
+
+create policy mfa_exemptions_select_self_or_admin
+on public.mfa_exemptions
+for select
+to authenticated
+using (
+  private.is_admin()
+  or lower(email) = private.auth_email()
+);
+
+create policy mfa_exemptions_insert_admin
+on public.mfa_exemptions
+for insert
+to authenticated
+with check (
+  private.is_admin()
+  and private.is_aal2()
+);
+
+create policy mfa_exemptions_update_admin
+on public.mfa_exemptions
+for update
+to authenticated
+using (
+  private.is_admin()
+  and private.is_aal2()
+)
+with check (
+  private.is_admin()
+  and private.is_aal2()
+);
+
+create policy mfa_exemptions_delete_admin
+on public.mfa_exemptions
+for delete
+to authenticated
+using (
+  private.is_admin()
+  and private.is_aal2()
+);
+
 -- 3) Projects: require approval + MFA (AAL2) + entitlement and ownership
 alter table public.projects enable row level security;
 
@@ -268,7 +349,7 @@ to authenticated
 using (
   owner_id = auth.uid()
   and private.is_approved_user()
-  and private.is_aal2()
+  and (private.is_aal2() or private.has_active_mfa_exemption())
   and private.has_active_entitlement(strategy)
 );
 
@@ -279,7 +360,7 @@ to authenticated
 with check (
   owner_id = auth.uid()
   and private.is_approved_user()
-  and private.is_aal2()
+  and (private.is_aal2() or private.has_active_mfa_exemption())
   and private.has_active_entitlement(strategy)
 );
 
@@ -290,13 +371,13 @@ to authenticated
 using (
   owner_id = auth.uid()
   and private.is_approved_user()
-  and private.is_aal2()
+  and (private.is_aal2() or private.has_active_mfa_exemption())
   and private.has_active_entitlement(strategy)
 )
 with check (
   owner_id = auth.uid()
   and private.is_approved_user()
-  and private.is_aal2()
+  and (private.is_aal2() or private.has_active_mfa_exemption())
   and private.has_active_entitlement(strategy)
 );
 
@@ -307,6 +388,6 @@ to authenticated
 using (
   owner_id = auth.uid()
   and private.is_approved_user()
-  and private.is_aal2()
+  and (private.is_aal2() or private.has_active_mfa_exemption())
   and private.has_active_entitlement(strategy)
 );

@@ -15,7 +15,7 @@ const ADMIN_EMAIL = 'contact@sanluisai.com';
 const STRATEGIES = ['DEVELOPER', 'LANDLORD', 'FLIPPER'] as const;
 const DEFAULT_TRIAL_DAYS = 14;
 
-type Action = 'approve' | 'revoke' | 'remove' | 'renew';
+type Action = 'approve' | 'revoke' | 'remove' | 'renew' | 'mfa_bypass_grant' | 'mfa_bypass_revoke';
 
 const json = (status: number, body: unknown, extraHeaders?: Record<string, string>) =>
   new Response(JSON.stringify(body), {
@@ -66,6 +66,11 @@ const parseTrialDays = () => {
 const looksLikeMissingRelation = (err: any) => {
   const msg = String(err?.message ?? '');
   return msg.includes('relation') && msg.includes('user_entitlements') && msg.includes('does not exist');
+};
+
+const looksLikeMissingMfaRelation = (err: any) => {
+  const msg = String(err?.message ?? '');
+  return msg.includes('relation') && msg.includes('mfa_exemptions') && msg.includes('does not exist');
 };
 
 serve(async (req) => {
@@ -125,13 +130,13 @@ serve(async (req) => {
   const uniqEmails = Array.from(new Set(emails));
 
   if (!uniqEmails.length) return json(400, { error: 'Invalid email(s)' }, cors);
-  if (!['approve', 'revoke', 'remove', 'renew'].includes(action)) {
+  if (!['approve', 'revoke', 'remove', 'renew', 'mfa_bypass_grant', 'mfa_bypass_revoke'].includes(action)) {
     return json(400, { error: 'Invalid action' }, cors);
   }
   if (uniqEmails.includes(normalizeEmail(ADMIN_EMAIL)) && action !== 'approve') {
     return json(400, { error: 'Cannot revoke/remove the admin email' }, cors);
   }
-  if (action === 'renew') {
+  if (action === 'renew' || action === 'mfa_bypass_grant') {
     if (days !== null && (!Number.isFinite(days) || days < 1 || days > 365)) {
       return json(400, { error: 'Invalid days (expected 1..365)' }, cors);
     }
@@ -157,17 +162,23 @@ serve(async (req) => {
     if (entErr && !looksLikeMissingRelation(entErr)) {
       return json(500, { error: entErr.message }, cors);
     }
+
+    // Best-effort cleanup for MFA exemptions.
+    const { error: mfaErr } = await dbClient.from('mfa_exemptions').delete().in('email', uniqEmails);
+    if (mfaErr && !looksLikeMissingMfaRelation(mfaErr)) {
+      return json(500, { error: mfaErr.message }, cors);
+    }
     return json(200, { ok: true, count: uniqEmails.length }, cors);
   }
 
-  if (action !== 'renew') {
+  if (action === 'approve' || action === 'revoke') {
     const approved = action === 'approve';
     const approvedAt = approved ? new Date().toISOString() : null;
     const payload = uniqEmails.map((email) => ({ email, approved, approved_at: approvedAt }));
 
     const { error } = await dbClient.from('approved_emails').upsert(payload, { onConflict: 'email' });
     if (error) return json(500, { error: error.message }, cors);
-  } else {
+  } else if (action === 'renew') {
     // Renew is only valid for already-approved emails.
     const { data: approvals, error: apprErr } = await dbClient
       .from('approved_emails')
@@ -227,9 +238,48 @@ serve(async (req) => {
       if (entErr && !looksLikeMissingRelation(entErr)) {
         return json(500, { error: entErr.message }, cors);
       }
+
+      // If access is revoked, remove any MFA bypass as well (defense in depth).
+      const { error: mfaErr } = await dbClient.from('mfa_exemptions').delete().in('email', uniqEmails);
+      if (mfaErr && !looksLikeMissingMfaRelation(mfaErr)) {
+        return json(500, { error: mfaErr.message }, cors);
+      }
+    } else if (action === 'mfa_bypass_grant' || action === 'mfa_bypass_revoke') {
+      // MFA bypass is only valid for already-approved users.
+      const { data: approvals, error: apprErr } = await dbClient
+        .from('approved_emails')
+        .select('email,approved')
+        .in('email', uniqEmails);
+      if (apprErr) return json(500, { error: apprErr.message }, cors);
+      const approvalsArr = (approvals ?? []) as any[];
+      const missing = uniqEmails.filter((e) => !approvalsArr.some((r) => normalizeEmail(String(r.email)) === e));
+      const unapproved = approvalsArr.filter((r) => !r.approved).map((r) => normalizeEmail(String(r.email)));
+      if (missing.length || unapproved.length) {
+        return json(400, { error: 'All emails must be approved before MFA bypass', missing, unapproved }, cors);
+      }
+
+      if (action === 'mfa_bypass_revoke') {
+        const { error: mfaErr } = await dbClient.from('mfa_exemptions').delete().in('email', uniqEmails);
+        if (mfaErr && !looksLikeMissingMfaRelation(mfaErr)) {
+          return json(500, { error: mfaErr.message }, cors);
+        }
+      } else {
+        const bypassDays = days ?? 7;
+        const expiresAt = new Date(now.getTime() + bypassDays * 24 * 60 * 60 * 1000).toISOString();
+        const payload = uniqEmails.map((email) => ({
+          email,
+          active: true,
+          expires_at: expiresAt,
+          updated_at: nowIso,
+        }));
+        const { error: mfaErr } = await dbClient.from('mfa_exemptions').upsert(payload, { onConflict: 'email' });
+        if (mfaErr && !looksLikeMissingMfaRelation(mfaErr)) {
+          return json(500, { error: mfaErr.message }, cors);
+        }
+      }
     }
   } catch (e: any) {
-    if (!looksLikeMissingRelation(e)) {
+    if (!looksLikeMissingRelation(e) && !looksLikeMissingMfaRelation(e)) {
       return json(500, { error: e?.message ?? 'Entitlement update failed' }, cors);
     }
   }

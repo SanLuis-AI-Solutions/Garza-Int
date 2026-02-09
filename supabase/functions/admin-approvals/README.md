@@ -10,12 +10,12 @@ Also maintains **strategy entitlements** in `public.user_entitlements` (trial ac
 
 Body:
 ```json
-{ "action": "approve" | "revoke" | "remove" | "renew", "email": "user@company.com" }
+{ "action": "approve" | "revoke" | "remove" | "renew" | "mfa_bypass_grant" | "mfa_bypass_revoke", "email": "user@company.com" }
 ```
 
 Bulk body:
 ```json
-{ "action": "approve" | "revoke" | "remove" | "renew", "emails": ["a@x.com", "b@x.com"], "days": 14 }
+{ "action": "approve" | "revoke" | "remove" | "renew" | "mfa_bypass_grant" | "mfa_bypass_revoke", "emails": ["a@x.com", "b@x.com"], "days": 14 }
 ```
 
 Auth:
