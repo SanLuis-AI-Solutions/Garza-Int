@@ -1,2 +1,23 @@
 # Local verification artifacts
 .health/
+
+# Dependencies / build output
+node_modules/
+dist/
+
+# Local env (never commit secrets)
+.env.local
+
+# Vercel local linkage
+.vercel/
+
+# Supabase local temp
+supabase/.temp/
+
+# Local Codex installs (keep .agent docs/workflows tracked, ignore installed copies)
+.agent/agents/
+.agent/skills/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
