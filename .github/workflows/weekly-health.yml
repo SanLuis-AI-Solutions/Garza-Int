@@ -24,7 +24,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
 
       - name: Setup Python
@@ -98,4 +98,3 @@ jobs:
         shell: pwsh
         run: |
           Write-Error "Verify failed with exit code ${{ steps.verify.outputs.exit_code }}"
-
