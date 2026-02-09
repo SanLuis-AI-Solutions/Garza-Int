@@ -21,3 +21,4 @@ Tracks notable changes to the Garza ROI app so new sessions can orient quickly.
 ## 2026-02-09
 - Security/Monetization: added server-side **time-limited entitlements** (`public.user_entitlements`) for strategy access, enforced by RLS on `public.projects`.
 - Ops: approving an email now grants **trial access to all 3 strategies** (Developer/Landlord/Flipper) via the `admin-approvals` Edge Function.
+- Ops: Admin Approvals UI can now display access expiry and **renew** a user's access window.

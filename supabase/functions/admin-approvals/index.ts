@@ -15,7 +15,7 @@ const ADMIN_EMAIL = 'contact@sanluisai.com';
 const STRATEGIES = ['DEVELOPER', 'LANDLORD', 'FLIPPER'] as const;
 const DEFAULT_TRIAL_DAYS = 14;
 
-type Action = 'approve' | 'revoke' | 'remove';
+type Action = 'approve' | 'revoke' | 'remove' | 'renew';
 
 const json = (status: number, body: unknown, extraHeaders?: Record<string, string>) =>
   new Response(JSON.stringify(body), {
@@ -117,17 +117,24 @@ serve(async (req) => {
 
   const body = await req.json().catch(() => null);
   const action = String(body?.action ?? '') as Action;
+  const daysRaw = body?.days;
+  const days = daysRaw !== undefined ? Number.parseInt(String(daysRaw), 10) : null;
   const one = body?.email !== undefined ? [String(body?.email)] : [];
   const many = Array.isArray(body?.emails) ? body.emails.map((x: any) => String(x)) : [];
   const emails = [...one, ...many].map(normalizeEmail).filter((e) => e && e.includes('@'));
   const uniqEmails = Array.from(new Set(emails));
 
   if (!uniqEmails.length) return json(400, { error: 'Invalid email(s)' }, cors);
-  if (!['approve', 'revoke', 'remove'].includes(action)) {
+  if (!['approve', 'revoke', 'remove', 'renew'].includes(action)) {
     return json(400, { error: 'Invalid action' }, cors);
   }
   if (uniqEmails.includes(normalizeEmail(ADMIN_EMAIL)) && action !== 'approve') {
     return json(400, { error: 'Cannot revoke/remove the admin email' }, cors);
+  }
+  if (action === 'renew') {
+    if (days !== null && (!Number.isFinite(days) || days < 1 || days > 365)) {
+      return json(400, { error: 'Invalid days (expected 1..365)' }, cors);
+    }
   }
 
   // Supabase reserves SUPABASE_* env vars for platform-managed values.
@@ -153,12 +160,27 @@ serve(async (req) => {
     return json(200, { ok: true, count: uniqEmails.length }, cors);
   }
 
-  const approved = action === 'approve';
-  const approvedAt = approved ? new Date().toISOString() : null;
-  const payload = uniqEmails.map((email) => ({ email, approved, approved_at: approvedAt }));
+  if (action !== 'renew') {
+    const approved = action === 'approve';
+    const approvedAt = approved ? new Date().toISOString() : null;
+    const payload = uniqEmails.map((email) => ({ email, approved, approved_at: approvedAt }));
 
-  const { error } = await dbClient.from('approved_emails').upsert(payload, { onConflict: 'email' });
-  if (error) return json(500, { error: error.message }, cors);
+    const { error } = await dbClient.from('approved_emails').upsert(payload, { onConflict: 'email' });
+    if (error) return json(500, { error: error.message }, cors);
+  } else {
+    // Renew is only valid for already-approved emails.
+    const { data: approvals, error: apprErr } = await dbClient
+      .from('approved_emails')
+      .select('email,approved')
+      .in('email', uniqEmails);
+    if (apprErr) return json(500, { error: apprErr.message }, cors);
+    const approvalsArr = (approvals ?? []) as any[];
+    const missing = uniqEmails.filter((e) => !approvalsArr.some((r) => normalizeEmail(String(r.email)) === e));
+    const unapproved = approvalsArr.filter((r) => !r.approved).map((r) => normalizeEmail(String(r.email)));
+    if (missing.length || unapproved.length) {
+      return json(400, { error: 'All emails must be approved before renew', missing, unapproved }, cors);
+    }
+  }
 
   // When an email is approved, grant time-limited access to ALL 3 strategies.
   // This is enforced server-side by RLS on `public.projects`.
@@ -168,8 +190,8 @@ serve(async (req) => {
     const now = new Date();
     const nowIso = now.toISOString();
 
-    if (action === 'approve') {
-      const trialDays = parseTrialDays();
+    if (action === 'approve' || action === 'renew') {
+      const trialDays = action === 'renew' ? (days ?? parseTrialDays()) : parseTrialDays();
       const expiresAt = new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000).toISOString();
 
       const entitlements = uniqEmails.flatMap((email) => {

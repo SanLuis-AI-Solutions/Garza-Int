@@ -8,6 +8,13 @@ type ApprovedEmailRow = {
   approved_at: string | null;
 };
 
+type EntitlementRow = {
+  email: string;
+  strategy: 'DEVELOPER' | 'LANDLORD' | 'FLIPPER';
+  active: boolean;
+  expires_at: string | null;
+};
+
 const formatDateTime = (value: string | null | undefined) => {
   if (!value) return '—';
   const d = new Date(value);
@@ -19,6 +26,7 @@ const normalizeEmail = (value: string) => value.trim().toLowerCase();
 
 const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
   const [rows, setRows] = useState<ApprovedEmailRow[]>([]);
+  const [entitlements, setEntitlements] = useState<Record<string, EntitlementRow[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,11 +34,16 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
   const [status, setStatus] = useState<'pending' | 'approved' | 'all'>('pending');
 
   const [newEmail, setNewEmail] = useState('');
+  const [renewDays, setRenewDays] = useState(14);
   const [submitting, setSubmitting] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
 
-  const callAdminApprovals = async (action: 'approve' | 'revoke' | 'remove', emails: string[]) => {
+  const callAdminApprovals = async (args: {
+    action: 'approve' | 'revoke' | 'remove' | 'renew';
+    emails: string[];
+    days?: number;
+  }) => {
     if (!supabase) return;
     const { data, error: sErr } = await supabase.auth.getSession();
     if (sErr) throw sErr;
@@ -46,7 +59,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
         'content-type': 'application/json',
         authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ action, emails: emails.map(normalizeEmail) }),
+      body: JSON.stringify({ action: args.action, emails: args.emails.map(normalizeEmail), days: args.days }),
     });
 
     const payload = await res.json().catch(() => ({}));
@@ -69,7 +82,36 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
         .order('created_at', { ascending: false });
 
       if (qErr) throw qErr;
-      setRows((data ?? []) as ApprovedEmailRow[]);
+      const nextRows = (data ?? []) as ApprovedEmailRow[];
+      setRows(nextRows);
+
+      const emails = Array.from(new Set(nextRows.map((r) => normalizeEmail(r.email)))).filter(Boolean);
+      if (emails.length) {
+        const { data: entData, error: entErr } = await supabase
+          .from('user_entitlements')
+          .select('email,strategy,active,expires_at')
+          .in('email', emails);
+        if (entErr) {
+          const msg = String((entErr as any)?.message ?? '');
+          if (msg.includes('user_entitlements') && msg.includes('does not exist')) {
+            setEntitlements({});
+          } else {
+            throw entErr;
+          }
+        }
+
+        if (!entErr) {
+          const grouped: Record<string, EntitlementRow[]> = {};
+          for (const r of (entData ?? []) as EntitlementRow[]) {
+            const e = normalizeEmail(r.email);
+            if (!grouped[e]) grouped[e] = [];
+            grouped[e].push({ ...r, email: e });
+          }
+          setEntitlements(grouped);
+        }
+      } else {
+        setEntitlements({});
+      }
       setSelected({});
     } catch (err: any) {
       setError(err?.message ?? 'Failed to load approvals');
@@ -97,7 +139,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     setActionMessage(null);
     setSubmitting(true);
     try {
-      await callAdminApprovals(approved ? 'approve' : 'revoke', [email]);
+      await callAdminApprovals({ action: approved ? 'approve' : 'revoke', emails: [email] });
       setActionMessage(approved ? `Approved ${normalizeEmail(email)}` : `Revoked ${normalizeEmail(email)}`);
       await refresh();
     } catch (err: any) {
@@ -112,7 +154,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     setActionMessage(null);
     setSubmitting(true);
     try {
-      await callAdminApprovals('remove', [email]);
+      await callAdminApprovals({ action: 'remove', emails: [email] });
       setActionMessage(`Removed ${normalizeEmail(email)}`);
       await refresh();
     } catch (err: any) {
@@ -165,7 +207,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     setActionMessage(null);
     setSubmitting(true);
     try {
-      await callAdminApprovals(action, selectedEmails);
+      await callAdminApprovals({ action, emails: selectedEmails });
       setActionMessage(
         action === 'approve'
           ? `Approved ${selectedEmails.length} email(s)`
@@ -179,6 +221,36 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const renew = async (emails: string[]) => {
+    if (!supabase) return;
+    if (!emails.length) return;
+    setActionMessage(null);
+    setSubmitting(true);
+    try {
+      await callAdminApprovals({ action: 'renew', emails, days: renewDays });
+      setActionMessage(`Renewed access for ${emails.length} email(s) (+${renewDays} days)`);
+      await refresh();
+    } catch (err: any) {
+      setError(err?.message ?? 'Renew failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const entitlementSummary = (email: string) => {
+    const list = entitlements[normalizeEmail(email)] ?? [];
+    const now = Date.now();
+    const active = list.filter((r) => r.active && (!r.expires_at || new Date(r.expires_at).getTime() > now));
+    const unlimited = active.some((r) => r.expires_at === null);
+    const maxExpiry =
+      active
+        .map((r) => r.expires_at)
+        .filter((x): x is string => Boolean(x))
+        .sort()
+        .at(-1) ?? null;
+    return { active, unlimited, maxExpiry };
   };
 
   return (
@@ -259,6 +331,15 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
                 >
                   Remove Selected
                 </button>
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => renew(selectedEmails)}
+                  className="px-3 py-2 gi-btn gi-btn-secondary text-xs disabled:opacity-60 font-semibold"
+                  title="Extend access window for approved users"
+                >
+                  Renew (+{renewDays}d)
+                </button>
               </div>
             </div>
           )}
@@ -288,6 +369,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
                   </th>
                   <th>Email</th>
                   <th>Status</th>
+                  <th>Access</th>
                   <th>Requested</th>
                   <th>Approved</th>
                   <th>Actions</th>
@@ -296,19 +378,21 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
               <tbody className="gi-tbody">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="py-6 gi-muted">
+                    <td colSpan={7} className="py-6 gi-muted">
                       Loading…
                     </td>
                   </tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-6 gi-muted">
+                    <td colSpan={7} className="py-6 gi-muted">
                       No matching rows.
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((r) => (
-                    <tr key={r.email} className="gi-trHover">
+                  filtered.map((r) => {
+                    const access = entitlementSummary(r.email);
+                    return (
+                      <tr key={r.email} className="gi-trHover">
                       <td>
                         <input
                           type="checkbox"
@@ -324,6 +408,13 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
                         >
                           {r.approved ? 'Approved' : 'Pending'}
                         </span>
+                      </td>
+                      <td className="gi-muted">
+                        {access.unlimited
+                          ? 'Unlimited'
+                          : access.active.length === 0
+                          ? 'Expired / None'
+                          : `Active until ${formatDateTime(access.maxExpiry)}`}
                       </td>
                       <td className="gi-muted">{formatDateTime(r.created_at)}</td>
                       <td className="gi-muted">{formatDateTime(r.approved_at)}</td>
@@ -348,6 +439,17 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
                               Approve
                             </button>
                           )}
+                          {r.approved && (
+                            <button
+                              type="button"
+                              disabled={submitting}
+                              onClick={() => renew([r.email])}
+                              className="px-2.5 py-1.5 gi-btn gi-btn-secondary text-xs disabled:opacity-60"
+                              title="Extend access window"
+                            >
+                              Renew (+{renewDays}d)
+                            </button>
+                          )}
                           <button
                             type="button"
                             disabled={submitting}
@@ -358,8 +460,9 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
                           </button>
                         </div>
                       </td>
-                    </tr>
-                  ))
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -380,6 +483,20 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
                 placeholder="user@company.com"
                 className="w-full gi-input px-3 py-2 text-sm"
               />
+              <div className="flex items-center gap-3">
+                <label className="text-xs gi-muted whitespace-nowrap">Renew days</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={renewDays}
+                  onChange={(e) => {
+                    const n = Number.parseInt(e.target.value || '14', 10);
+                    setRenewDays(Math.max(1, Math.min(365, Number.isFinite(n) ? n : 14)));
+                  }}
+                  className="w-full gi-input px-3 py-2 text-sm"
+                />
+              </div>
               <button
                 type="button"
                 disabled={submitting || !newEmail.trim()}
