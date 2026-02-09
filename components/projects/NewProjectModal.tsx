@@ -11,11 +11,16 @@ const NewProjectModal: React.FC<{
   open: boolean;
   onClose: () => void;
   onCreate: (args: { name: string; strategy: InvestmentStrategy }) => Promise<void>;
-}> = ({ open, onClose, onCreate }) => {
+  allowedStrategies?: InvestmentStrategy[];
+}> = ({ open, onClose, onCreate, allowedStrategies }) => {
   const [strategy, setStrategy] = useState<InvestmentStrategy>('LANDLORD');
   const [name, setName] = useState('New Project');
   const [submitting, setSubmitting] = useState(false);
   const canSubmit = useMemo(() => name.trim().length > 0 && !submitting, [name, submitting]);
+  const allowedSet = useMemo(() => new Set(allowedStrategies ?? STRATEGIES.map((s) => s.id)), [allowedStrategies]);
+  const visibleStrategies = useMemo(() => STRATEGIES.filter((s) => allowedSet.has(s.id)), [allowedSet]);
+  const canCreateForStrategy = allowedSet.has(strategy);
+  const canSubmitFinal = canSubmit && canCreateForStrategy && visibleStrategies.length > 0;
 
   if (!open) return null;
 
@@ -32,7 +37,7 @@ const NewProjectModal: React.FC<{
           <div>
             <div className="text-sm font-semibold text-white/90 mb-3">Strategy</div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {STRATEGIES.map((s) => (
+              {visibleStrategies.map((s) => (
                 <button
                   key={s.id}
                   type="button"
@@ -44,6 +49,11 @@ const NewProjectModal: React.FC<{
                 </button>
               ))}
             </div>
+            {visibleStrategies.length === 0 && (
+              <div className="mt-3 text-sm gi-muted">
+                No strategies are available for your account right now.
+              </div>
+            )}
           </div>
 
           <div>
@@ -68,9 +78,9 @@ const NewProjectModal: React.FC<{
           </button>
           <button
             type="button"
-            disabled={!canSubmit}
+            disabled={!canSubmitFinal}
             onClick={async () => {
-              if (!canSubmit) return;
+              if (!canSubmitFinal) return;
               setSubmitting(true);
               try {
                 await onCreate({ name: name.trim(), strategy });

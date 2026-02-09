@@ -13,6 +13,7 @@ import ProjectSwitcher from './components/projects/ProjectSwitcher';
 import NewProjectModal from './components/projects/NewProjectModal';
 import ValidationBanner from './components/ValidationBanner';
 import { appEnv, appVersion } from './services/appMeta';
+import type { InvestmentStrategy } from './domain/strategies/types';
 
 const Visualizer = React.lazy(() => import('./components/Visualizer'));
 const MarketAnalysis = React.lazy(() => import('./components/MarketAnalysis'));
@@ -23,11 +24,12 @@ const CalculatorQA = React.lazy(() => import('./components/CalculatorQA'));
 
 type DashboardAppProps = {
   session: Session;
+  access: { allowedStrategies: InvestmentStrategy[]; trialEndsAt: string | null };
 };
 
 const ADMIN_EMAIL = 'contact@sanluisai.com';
 
-const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
+const DashboardShell: React.FC<DashboardAppProps> = ({ session, access }) => {
   const [aiReady, setAiReady] = useState<boolean>(hasGeminiKey);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -439,6 +441,7 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
       <NewProjectModal
         open={newProjectOpen}
         onClose={() => setNewProjectOpen(false)}
+        allowedStrategies={access.allowedStrategies}
         onCreate={async ({ name, strategy }) => {
           await createNewProject({ session, name, strategy });
           setActiveTab(AppTab.INPUTS);
@@ -448,10 +451,10 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session }) => {
   );
 };
 
-const DashboardApp: React.FC<DashboardAppProps> = ({ session }) => {
+const DashboardApp: React.FC<DashboardAppProps> = ({ session, access }) => {
   return (
     <ProjectProvider session={session}>
-      <DashboardShell session={session} />
+      <DashboardShell session={session} access={access} />
     </ProjectProvider>
   );
 };

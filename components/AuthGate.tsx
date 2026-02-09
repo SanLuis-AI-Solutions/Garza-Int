@@ -1,9 +1,21 @@
 import React, { useEffect, useId, useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase } from '../services/supabaseClient';
+import type { InvestmentStrategy } from '../domain/strategies/types';
 
 type AuthGateProps = {
-  children: (args: { session: Session }) => React.ReactNode;
+  children: (args: { session: Session; access: AccessInfo }) => React.ReactNode;
+};
+
+type EntitlementRow = {
+  strategy: InvestmentStrategy;
+  active: boolean;
+  expires_at: string | null;
+};
+
+type AccessInfo = {
+  allowedStrategies: InvestmentStrategy[];
+  trialEndsAt: string | null;
 };
 
 const parseCsv = (value: string | undefined) =>
@@ -22,6 +34,10 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
   const [aalLoading, setAalLoading] = useState(false);
   const [aalError, setAalError] = useState<string | null>(null);
   const [aal, setAal] = useState<{ currentLevel: string | null; nextLevel: string | null } | null>(null);
+  const [accessLoading, setAccessLoading] = useState(false);
+  const [accessError, setAccessError] = useState<string | null>(null);
+  const [access, setAccess] = useState<AccessInfo | null>(null);
+  const adminEmail = 'contact@sanluisai.com';
 
   const allowedEmails = useMemo(
     () => parseCsv(import.meta.env.VITE_AUTH_ALLOWED_EMAILS as string | undefined),
@@ -116,6 +132,9 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
       setApproved(null);
       setApprovalError(null);
       setApprovalLoading(false);
+      setAccess(null);
+      setAccessError(null);
+      setAccessLoading(false);
       return;
     }
     checkApproval(session);
@@ -155,6 +174,67 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
       mounted = false;
     };
   }, [requireMfa, session?.access_token]);
+
+  const checkEntitlements = async (activeSession: Session) => {
+    if (!supabase) return;
+    const email = (activeSession.user.email ?? '').toLowerCase();
+    setAccessError(null);
+    setAccessLoading(true);
+    try {
+      // Admin always has access, even during migrations or temporary table drift.
+      if (email && email === adminEmail.toLowerCase()) {
+        setAccess({ allowedStrategies: ['DEVELOPER', 'LANDLORD', 'FLIPPER'], trialEndsAt: null });
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('user_entitlements')
+        .select('strategy,active,expires_at')
+        .eq('email', activeSession.user.email ?? '');
+
+      // Backward-compatible: if the entitlements table isn't deployed yet, don't lock users out.
+      if (error) {
+        const msg = String((error as any)?.message ?? '');
+        if (msg.includes('user_entitlements') && msg.includes('does not exist')) {
+          setAccess({ allowedStrategies: ['DEVELOPER', 'LANDLORD', 'FLIPPER'], trialEndsAt: null });
+          return;
+        }
+        throw error;
+      }
+
+      const rows = (data ?? []) as EntitlementRow[];
+      const now = Date.now();
+      const allowed = rows
+        .filter((r) => {
+          if (!r.active) return false;
+          if (!r.expires_at) return true;
+          return new Date(r.expires_at).getTime() > now;
+        })
+        .map((r) => r.strategy);
+
+      const trialEndsAt =
+        rows
+          .map((r) => r.expires_at)
+          .filter((x): x is string => Boolean(x))
+          .sort()
+          .at(-1) ?? null;
+
+      setAccess({ allowedStrategies: Array.from(new Set(allowed)), trialEndsAt });
+    } catch (err: any) {
+      setAccess({ allowedStrategies: [], trialEndsAt: null });
+      setAccessError(err?.message ?? 'Access check failed');
+    } finally {
+      setAccessLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!supabase) return;
+    if (!session) return;
+    if (approved !== true) return;
+    if (requireMfa && aal?.currentLevel !== 'aal2') return;
+    checkEntitlements(session);
+  }, [session?.user?.email, session?.access_token, approved, requireMfa, aal?.currentLevel]);
 
   if (!isSupabaseConfigured) {
     return (
@@ -244,7 +324,30 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
     }
   }
 
-  return <>{children({ session })}</>;
+  if (accessLoading || !access) {
+    return (
+      <div className="min-h-screen flex items-center justify-center gi-muted">
+        Checking access…{'\u00A0'}(Plans)
+      </div>
+    );
+  }
+
+  if (access.allowedStrategies.length === 0) {
+    return (
+      <TrialExpired
+        email={session.user.email ?? ''}
+        error={accessError}
+        trialEndsAt={access.trialEndsAt}
+        onRefresh={() => checkEntitlements(session)}
+        onSignOut={async () => {
+          if (!supabase) return;
+          await supabase.auth.signOut();
+        }}
+      />
+    );
+  }
+
+  return <>{children({ session, access })}</>;
 };
 
 const Login: React.FC = () => {
@@ -589,6 +692,48 @@ const MfaRequired: React.FC<{
             </button>
           </>
         )}
+      </div>
+    </div>
+  );
+};
+
+const TrialExpired: React.FC<{
+  email: string;
+  error: string | null;
+  trialEndsAt: string | null;
+  onRefresh: () => void;
+  onSignOut: () => void;
+}> = ({ email, error, trialEndsAt, onRefresh, onSignOut }) => {
+  const formatted = trialEndsAt ? new Date(trialEndsAt).toLocaleString() : null;
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-6">
+      <div className="w-full max-w-lg gi-card p-8">
+        <h1 className="text-xl font-bold gi-serif">Access Expired</h1>
+        <p className="mt-2 text-sm gi-muted">
+          Your access window has ended. Contact an admin to renew access.
+        </p>
+        <div className="mt-4 text-sm gi-muted2">
+          Signed in as <span className="font-mono text-white/90">{email}</span>
+        </div>
+        {formatted && (
+          <div className="mt-2 text-sm gi-muted2">
+            Trial ended on <span className="font-mono text-white/90">{formatted}</span>
+          </div>
+        )}
+        {error && (
+          <div className="mt-4 text-xs text-red-200 bg-red-500/10 border border-red-500/20 rounded-md p-3">
+            {error}
+          </div>
+        )}
+        <div className="mt-6 flex gap-3">
+          <button type="button" onClick={onRefresh} className="gi-btn gi-btn-secondary px-4 py-2.5 text-sm font-semibold">
+            Refresh
+          </button>
+          <button type="button" onClick={onSignOut} className="gi-btn gi-btn-ghost px-4 py-2.5 text-sm font-semibold">
+            Sign out
+          </button>
+        </div>
       </div>
     </div>
   );

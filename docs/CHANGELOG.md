@@ -17,3 +17,7 @@ Tracks notable changes to the Garza ROI app so new sessions can orient quickly.
 - Added admin-only **Calculator QA** screen to regression-check core formulas in-browser (`AppTab.QA`).
 - Removed the AI Chat “Quick Tip” button/feature (keeps chat only).
 - Added a simple human version label (`VITE_APP_VERSION`, e.g. `v1.5`) shown in the sidebar and included in exports/emails.
+
+## 2026-02-09
+- Security/Monetization: added server-side **time-limited entitlements** (`public.user_entitlements`) for strategy access, enforced by RLS on `public.projects`.
+- Ops: approving an email now grants **trial access to all 3 strategies** (Developer/Landlord/Flipper) via the `admin-approvals` Edge Function.

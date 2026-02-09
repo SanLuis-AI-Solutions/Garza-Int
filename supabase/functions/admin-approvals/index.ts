@@ -12,6 +12,8 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
 const ADMIN_EMAIL = 'contact@sanluisai.com';
+const STRATEGIES = ['DEVELOPER', 'LANDLORD', 'FLIPPER'] as const;
+const DEFAULT_TRIAL_DAYS = 14;
 
 type Action = 'approve' | 'revoke' | 'remove';
 
@@ -53,6 +55,18 @@ const decodeJwtPayload = (jwt: string): Record<string, unknown> | null => {
 };
 
 const normalizeEmail = (value: string) => value.trim().toLowerCase();
+
+const parseTrialDays = () => {
+  const raw = (Deno.env.get('TRIAL_DAYS') ?? '').trim();
+  const n = Number.parseInt(raw || String(DEFAULT_TRIAL_DAYS), 10);
+  if (!Number.isFinite(n) || n <= 0) return DEFAULT_TRIAL_DAYS;
+  return Math.max(1, Math.min(365, n));
+};
+
+const looksLikeMissingRelation = (err: any) => {
+  const msg = String(err?.message ?? '');
+  return msg.includes('relation') && msg.includes('user_entitlements') && msg.includes('does not exist');
+};
 
 serve(async (req) => {
   const origin = getOrigin(req);
@@ -130,6 +144,12 @@ serve(async (req) => {
   if (action === 'remove') {
     const { error } = await dbClient.from('approved_emails').delete().in('email', uniqEmails);
     if (error) return json(500, { error: error.message }, cors);
+
+    // Best-effort cleanup. If the table hasn't been deployed yet, ignore.
+    const { error: entErr } = await dbClient.from('user_entitlements').delete().in('email', uniqEmails);
+    if (entErr && !looksLikeMissingRelation(entErr)) {
+      return json(500, { error: entErr.message }, cors);
+    }
     return json(200, { ok: true, count: uniqEmails.length }, cors);
   }
 
@@ -139,5 +159,57 @@ serve(async (req) => {
 
   const { error } = await dbClient.from('approved_emails').upsert(payload, { onConflict: 'email' });
   if (error) return json(500, { error: error.message }, cors);
+
+  // When an email is approved, grant time-limited access to ALL 3 strategies.
+  // This is enforced server-side by RLS on `public.projects`.
+  //
+  // Also handle revoke/remove so the server stays consistent even if someone tampers with the frontend.
+  try {
+    const now = new Date();
+    const nowIso = now.toISOString();
+
+    if (action === 'approve') {
+      const trialDays = parseTrialDays();
+      const expiresAt = new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000).toISOString();
+
+      const entitlements = uniqEmails.flatMap((email) => {
+        const isAdminEmail = normalizeEmail(email) === normalizeEmail(ADMIN_EMAIL);
+        return STRATEGIES.map((strategy) => ({
+          email,
+          strategy,
+          active: true,
+          expires_at: isAdminEmail ? null : expiresAt,
+          updated_at: nowIso,
+        }));
+      });
+
+      const { error: entErr } = await dbClient
+        .from('user_entitlements')
+        .upsert(entitlements, { onConflict: 'email,strategy' });
+      if (entErr && !looksLikeMissingRelation(entErr)) {
+        return json(500, { error: entErr.message }, cors);
+      }
+    } else if (action === 'revoke') {
+      const entitlements = uniqEmails.flatMap((email) =>
+        STRATEGIES.map((strategy) => ({
+          email,
+          strategy,
+          active: false,
+          expires_at: nowIso,
+          updated_at: nowIso,
+        }))
+      );
+      const { error: entErr } = await dbClient
+        .from('user_entitlements')
+        .upsert(entitlements, { onConflict: 'email,strategy' });
+      if (entErr && !looksLikeMissingRelation(entErr)) {
+        return json(500, { error: entErr.message }, cors);
+      }
+    }
+  } catch (e: any) {
+    if (!looksLikeMissingRelation(e)) {
+      return json(500, { error: e?.message ?? 'Entitlement update failed' }, cors);
+    }
+  }
   return json(200, { ok: true, count: uniqEmails.length }, cors);
 });

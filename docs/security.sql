@@ -78,6 +78,61 @@ as $$
   );
 $$;
 
+-- 2b) Strategy entitlements (time-limited access)
+--
+-- We key by email (from the signed JWT) to keep admin approval + entitlement granting simple.
+-- This is server-side enforced via projects RLS below.
+create table if not exists public.user_entitlements (
+  email text not null,
+  strategy text not null check (strategy in ('DEVELOPER','LANDLORD','FLIPPER')),
+  active boolean not null default true,
+  expires_at timestamptz null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (email, strategy)
+);
+
+create index if not exists user_entitlements_email_idx on public.user_entitlements (email);
+
+alter table public.user_entitlements enable row level security;
+
+-- Seed/Backfill (safe, idempotent):
+-- - Ensure the admin is approved.
+-- - Grant strategy entitlements for already-approved users if missing.
+--
+-- NOTE: This uses a default 14-day window for missing entitlements. Future approvals are handled by the Edge Function.
+insert into public.approved_emails (email, approved, approved_at)
+values ('contact@sanluisai.com', true, now())
+on conflict (email)
+do update set approved = true;
+
+insert into public.user_entitlements (email, strategy, active, expires_at)
+select
+  lower(ae.email) as email,
+  s.strategy,
+  true as active,
+  case when lower(ae.email) = 'contact@sanluisai.com' then null else (now() + interval '14 days') end as expires_at
+from public.approved_emails ae
+cross join (values ('DEVELOPER'), ('LANDLORD'), ('FLIPPER')) as s(strategy)
+where ae.approved = true
+on conflict (email, strategy)
+do nothing;
+
+create or replace function private.has_active_entitlement(project_strategy text)
+returns boolean
+stable
+language sql
+as $$
+  select exists (
+    select 1
+    from public.user_entitlements ue
+    where lower(ue.email) = private.auth_email()
+      and ue.strategy = project_strategy
+      and ue.active = true
+      and (ue.expires_at is null or ue.expires_at > now())
+  );
+$$;
+
 -- Reset policies (drop all existing policies on both tables to avoid bypass)
 do $$
 declare r record;
@@ -85,6 +140,15 @@ begin
   for r in select policyname from pg_policies where schemaname = 'public' and tablename = 'approved_emails'
   loop
     execute format('drop policy if exists %I on public.approved_emails', r.policyname);
+  end loop;
+end $$;
+
+do $$
+declare r record;
+begin
+  for r in select policyname from pg_policies where schemaname = 'public' and tablename = 'user_entitlements'
+  loop
+    execute format('drop policy if exists %I on public.user_entitlements', r.policyname);
   end loop;
 end $$;
 
@@ -150,7 +214,51 @@ using (
   and private.is_aal2()
 );
 
--- 3) Projects: require BOTH approval and MFA (AAL2) and ownership
+-- user_entitlements policies:
+-- - Users can see ONLY their own entitlements
+-- - Admin can list/manage all rows (requires MFA/AAL2 for mutations)
+
+create policy user_entitlements_select_self_or_admin
+on public.user_entitlements
+for select
+to authenticated
+using (
+  private.is_admin()
+  or lower(email) = private.auth_email()
+);
+
+create policy user_entitlements_insert_admin
+on public.user_entitlements
+for insert
+to authenticated
+with check (
+  private.is_admin()
+  and private.is_aal2()
+);
+
+create policy user_entitlements_update_admin
+on public.user_entitlements
+for update
+to authenticated
+using (
+  private.is_admin()
+  and private.is_aal2()
+)
+with check (
+  private.is_admin()
+  and private.is_aal2()
+);
+
+create policy user_entitlements_delete_admin
+on public.user_entitlements
+for delete
+to authenticated
+using (
+  private.is_admin()
+  and private.is_aal2()
+);
+
+-- 3) Projects: require approval + MFA (AAL2) + entitlement and ownership
 alter table public.projects enable row level security;
 
 create policy projects_select_guarded
@@ -161,6 +269,7 @@ using (
   owner_id = auth.uid()
   and private.is_approved_user()
   and private.is_aal2()
+  and private.has_active_entitlement(strategy)
 );
 
 create policy projects_insert_guarded
@@ -171,6 +280,7 @@ with check (
   owner_id = auth.uid()
   and private.is_approved_user()
   and private.is_aal2()
+  and private.has_active_entitlement(strategy)
 );
 
 create policy projects_update_guarded
@@ -181,11 +291,13 @@ using (
   owner_id = auth.uid()
   and private.is_approved_user()
   and private.is_aal2()
+  and private.has_active_entitlement(strategy)
 )
 with check (
   owner_id = auth.uid()
   and private.is_approved_user()
   and private.is_aal2()
+  and private.has_active_entitlement(strategy)
 );
 
 create policy projects_delete_guarded
@@ -196,4 +308,5 @@ using (
   owner_id = auth.uid()
   and private.is_approved_user()
   and private.is_aal2()
+  and private.has_active_entitlement(strategy)
 );
