@@ -21,12 +21,15 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install
-        run: npm ci
+      - name: Verify
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path .health | Out-Null
+          pwsh -File scripts/verify.ps1 -Ci -ReportPath .health/report.md
 
-      - name: Build
-        run: npm run build
-
-      - name: Test
-        run: npm test
-
+      - name: Upload Verification Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-report
+          path: .health/report.md
