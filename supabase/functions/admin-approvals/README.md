@@ -2,6 +2,8 @@
 
 Admin-only mutation path for `public.approved_emails`.
 
+Also maintains **strategy entitlements** in `public.user_entitlements` (trial access to all 3 strategies on approval).
+
 ## API
 
 `POST /functions/v1/admin-approvals`
@@ -26,5 +28,6 @@ Auth:
 
 Optional (recommended):
 - `SERVICE_ROLE_KEY`
+- `TRIAL_DAYS` (default: 14)
 
 If missing, the function falls back to using the caller JWT so Postgres RLS still enforces admin + MFA.
