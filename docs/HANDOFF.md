@@ -4,7 +4,7 @@ Use this when transitioning work between sessions or agents. Follow the "Documen
 
 ## Status
 - Current focus: Stabilize and harden Garza ROI Dashboard (security + correctness + ops UX).
-- Last completed (2026-02-06): Approval + MFA enforcement, approvals edge function, validation benchmarks, and ops QoL improvements.
+- Last completed (2026-02-09): Strategy entitlements (time-limited access to all 3 strategies) enforced by RLS + Edge Function granting on approval + admin renew controls in Approvals UI.
 
 ## Key Files
 - Security (DB/RLS): `docs/security.sql`
@@ -20,7 +20,7 @@ Use this when transitioning work between sessions or agents. Follow the "Documen
 - Change log: `docs/CHANGELOG.md`
 
 ## Next Actions
-1. Add an admin-only “Calculator QA” page with prefilled benchmark scenarios and expected KPI outputs (UI regression for math).
-2. Add optional notification emails on new approval requests (requires an email provider key; implement as edge function + rate limiting).
-3. Add a short production smoke checklist (login -> MFA -> create project -> export report) and capture evidence screenshots.
-4. Product decision to revisit: strategy-based paid access (entitlements) so users can be granted Landlord/Flipper/Developer access separately (block completely if not entitled; Stripe later).
+1. Add Stripe billing (or PayPal) + webhook-driven renewals that extend `user_entitlements.expires_at` automatically.
+2. Add a user-facing “Plan / Access” view that shows remaining time + renewal instructions (reduces support load).
+3. Add optional notification emails on new approval requests (requires an email provider key; implement as edge function + rate limiting).
+4. Add a short production smoke checklist (login -> MFA -> create project -> export report) and capture evidence screenshots.
