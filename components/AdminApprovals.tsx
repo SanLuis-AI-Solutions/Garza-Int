@@ -32,6 +32,13 @@ type ApprovalAuditRow = {
   detail: Record<string, unknown> | null;
 };
 
+type RenewalRequestRow = {
+  id: number;
+  email: string;
+  requested_at: string;
+  status: 'pending' | 'resolved';
+};
+
 const formatDateTime = (value: string | null | undefined) => {
   if (!value) return '—';
   const d = new Date(value);
@@ -68,6 +75,8 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [reauthRequired, setReauthRequired] = useState(false);
   const [auditAvailable, setAuditAvailable] = useState(true);
+  const [renewalRequests, setRenewalRequests] = useState<RenewalRequestRow[]>([]);
+  const [renewalRequestsAvailable, setRenewalRequestsAvailable] = useState(true);
 
   const ensureAdminSessionReady = async () => {
     if (!supabase) throw new Error('Supabase is not configured.');
@@ -104,8 +113,15 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     if (!supabase) return;
     await ensureAdminSessionReady();
     const invokeApprovals = async () => {
+      const { data: sData } = await supabase.auth.getSession();
+      const accessToken = sData.session?.access_token ?? null;
+      if (!accessToken) {
+        setReauthRequired(true);
+        throw new Error('Missing session token. Sign out, sign in, and complete MFA, then retry.');
+      }
       const { data, error: invokeErr } = await supabase.functions.invoke('admin-approvals', {
         body: { action: args.action, emails: args.emails.map(normalizeEmail), days: args.days },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
       const payload = (data ?? null) as Record<string, unknown> | null;
       const context = (invokeErr as any)?.context as Response | undefined;
@@ -157,6 +173,25 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     }
     logUiError('admin_approvals_error', invokeErr, { action: args.action, emails_count: args.emails.length });
     throw new Error(baseMessage);
+  };
+
+  const resolveRenewalRequests = async (emails: string[]) => {
+    if (!supabase) return;
+    if (!renewalRequestsAvailable) return;
+    const normalized = emails.map(normalizeEmail).filter(Boolean);
+    if (!normalized.length) return;
+    const { error } = await supabase
+      .from('access_renewal_requests')
+      .update({
+        status: 'resolved',
+        resolved_at: new Date().toISOString(),
+        resolved_by: normalizeEmail(adminEmail),
+      })
+      .in('email', normalized)
+      .eq('status', 'pending');
+    if (error && !isMissingTableError(error, 'access_renewal_requests')) {
+      throw error;
+    }
   };
 
   const refresh = async () => {
@@ -222,6 +257,26 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
           setMfaExemptions(grouped);
         }
 
+        const { data: reqData, error: reqErr } = await supabase
+          .from('access_renewal_requests')
+          .select('id,email,requested_at,status')
+          .eq('status', 'pending')
+          .order('requested_at', { ascending: false })
+          .limit(50);
+        if (reqErr) {
+          if (isMissingTableError(reqErr, 'access_renewal_requests')) {
+            setRenewalRequestsAvailable(false);
+            setRenewalRequests([]);
+          } else {
+            throw reqErr;
+          }
+        } else {
+          setRenewalRequestsAvailable(true);
+          setRenewalRequests(
+            ((reqData ?? []) as RenewalRequestRow[]).map((r) => ({ ...r, email: normalizeEmail(r.email) }))
+          );
+        }
+
         const { data: auditData, error: auditErr } = await supabase
           .from('admin_approval_audit')
           .select('created_at,admin_email,action,status,target_emails,days,detail')
@@ -241,6 +296,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
       } else {
         setEntitlements({});
         setMfaExemptions({});
+        setRenewalRequests([]);
         setAuditRows([]);
       }
       setSelected({});
@@ -271,6 +327,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     setSubmitting(true);
     try {
       await callAdminApprovals({ action: approved ? 'approve' : 'revoke', emails: [email] });
+      if (approved) await resolveRenewalRequests([email]);
       setActionMessage(approved ? `Approved ${normalizeEmail(email)}` : `Revoked ${normalizeEmail(email)}`);
       await refresh();
     } catch (err: any) {
@@ -339,6 +396,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     setSubmitting(true);
     try {
       await callAdminApprovals({ action, emails: selectedEmails });
+      if (action === 'approve') await resolveRenewalRequests(selectedEmails);
       setActionMessage(
         action === 'approve'
           ? `Approved ${selectedEmails.length} email(s)`
@@ -361,6 +419,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     setSubmitting(true);
     try {
       await callAdminApprovals({ action: 'renew', emails, days: renewDays });
+      await resolveRenewalRequests(emails);
       setActionMessage(`Renewed access for ${emails.length} email(s) (+${renewDays} days)`);
       await refresh();
     } catch (err: any) {
@@ -424,6 +483,28 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     return { active, unlimited, maxExpiry };
   };
 
+  const approvalMap = useMemo(
+    () => new Map(rows.map((r) => [normalizeEmail(r.email), r] as const)),
+    [rows]
+  );
+
+  const approveAndRenew = async (email: string) => {
+    if (!supabase) return;
+    setActionMessage(null);
+    setSubmitting(true);
+    try {
+      await callAdminApprovals({ action: 'approve', emails: [email] });
+      await callAdminApprovals({ action: 'renew', emails: [email], days: renewDays });
+      await resolveRenewalRequests([email]);
+      setActionMessage(`Approved and renewed ${normalizeEmail(email)} (+${renewDays} days)`);
+      await refresh();
+    } catch (err: any) {
+      setError(err?.message ?? 'Approve + renew failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="gi-card p-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -463,6 +544,49 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
 
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
+          {renewalRequestsAvailable && renewalRequests.length > 0 && (
+            <div className="mb-4 gi-card-flat p-3">
+              <div className="text-sm font-semibold text-white/90">
+                Renewal Requests ({renewalRequests.length})
+              </div>
+              <p className="mt-1 text-xs gi-muted">
+                Submitted from expired accounts. Use Approve + Renew to restore access quickly.
+              </p>
+              <div className="mt-3 overflow-x-auto">
+                <table className="gi-table text-xs">
+                  <thead className="gi-thead">
+                    <tr>
+                      <th scope="col">Email</th>
+                      <th scope="col">Requested</th>
+                      <th scope="col">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="gi-tbody">
+                    {renewalRequests.map((req) => {
+                      const approved = Boolean(approvalMap.get(req.email)?.approved);
+                      return (
+                        <tr key={req.id}>
+                          <td className="font-mono text-white/90">{req.email}</td>
+                          <td className="gi-muted">{formatDateTime(req.requested_at)}</td>
+                          <td>
+                            <button
+                              type="button"
+                              disabled={submitting}
+                              onClick={() => (approved ? renew([req.email]) : approveAndRenew(req.email))}
+                              className="px-2.5 py-1.5 gi-btn gi-btn-primary text-xs disabled:opacity-60"
+                            >
+                              {approved ? `Renew (+${renewDays}d)` : `Approve + Renew (+${renewDays}d)`}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col md:flex-row md:items-center gap-3">
             <input
               value={filter}

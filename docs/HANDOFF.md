@@ -4,7 +4,7 @@ Use this when transitioning work between sessions or agents. Follow the "Documen
 
 ## Status
 - Current focus: Stabilize and harden Garza ROI Dashboard (security + correctness + ops UX).
-- Last completed (2026-02-27, Agent: Codex/GPT-5): Hotfix released as **1.1.1** for approvals reliability and nav placement (`Access` moved to bottom). Renew blockers fixed with token refresh retry + optional audit-table handling.
+- Last completed (2026-02-27, Agent: Codex/GPT-5): Hotfix released as **1.1.2** adding in-app renewal requests (`Access Expired` -> `Request Renewal`) and admin-side request queue (`Approvals` -> `Renewal Requests`), plus explicit bearer+retry for renew calls.
 
 ## Key Files
 - Security (DB/RLS): `docs/security.sql`

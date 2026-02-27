@@ -19,11 +19,26 @@ type MfaExemptionRow = {
   expires_at: string | null;
 };
 
+type AccessRenewalRequestRow = {
+  id: number;
+  email: string;
+  status: 'pending' | 'resolved';
+  requested_at: string;
+};
+
 const parseCsv = (value: string | undefined) =>
   (value ?? '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
+
+const isMissingTableError = (err: any, table: string) => {
+  const msg = String(err?.message ?? '').toLowerCase();
+  return (
+    msg.includes(table.toLowerCase()) &&
+    (msg.includes('does not exist') || msg.includes('schema cache') || msg.includes('could not find the table'))
+  );
+};
 
 const STRATEGY_ORDER: InvestmentStrategy[] = ['DEVELOPER', 'LANDLORD', 'FLIPPER'];
 
@@ -115,19 +130,19 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
 
   const checkApproval = async (activeSession: Session) => {
     if (!supabase) return;
+    const email = (activeSession.user.email ?? '').trim().toLowerCase();
     setApprovalError(null);
     setApprovalLoading(true);
     try {
       const { data, error } = await supabase
         .from('approved_emails')
         .select('approved')
-        .eq('email', activeSession.user.email ?? '')
+        .ilike('email', email)
         .maybeSingle();
 
       if (error) throw error;
-      if (!data && activeSession.user.email) {
+      if (!data && email) {
         // If no request exists yet, create one so admins can approve from the dashboard.
-        const email = activeSession.user.email;
         const { error: insertError } = await supabase
           .from('approved_emails')
           .insert({ email, approved: false, approved_at: null });
@@ -211,7 +226,7 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
       const { data, error } = await supabase
         .from('mfa_exemptions')
         .select('active,expires_at')
-        .eq('email', activeSession.user.email ?? '')
+        .ilike('email', email)
         .maybeSingle();
 
       // If the table isn't deployed yet, treat as no bypass.
@@ -259,7 +274,7 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
       const { data, error } = await supabase
         .from('user_entitlements')
         .select('strategy,active,expires_at')
-        .eq('email', activeSession.user.email ?? '');
+        .ilike('email', email);
 
       // Backward-compatible: if the entitlements table isn't deployed yet, don't lock users out.
       if (error) {
@@ -839,6 +854,45 @@ const TrialExpired: React.FC<{
   onSignOut: () => void;
 }> = ({ email, error, trialEndsAt, onRefresh, onSignOut }) => {
   const formatted = trialEndsAt ? new Date(trialEndsAt).toLocaleString() : null;
+  const [requesting, setRequesting] = useState(false);
+  const [requestMsg, setRequestMsg] = useState<string | null>(null);
+  const [requestErr, setRequestErr] = useState<string | null>(null);
+
+  const requestRenewal = async () => {
+    if (!supabase) return;
+    const normalized = email.trim().toLowerCase();
+    if (!normalized) return;
+    setRequesting(true);
+    setRequestErr(null);
+    setRequestMsg(null);
+    try {
+      const { error: reqErr } = await supabase
+        .from('access_renewal_requests')
+        .insert({ email: normalized, status: 'pending' });
+
+      if (reqErr) {
+        if (isMissingTableError(reqErr, 'access_renewal_requests')) {
+          const { error: fallbackErr } = await supabase
+            .from('approved_emails')
+            .insert({ email: normalized, approved: false, approved_at: null });
+          if (fallbackErr && fallbackErr.code !== '23505') throw fallbackErr;
+          setRequestMsg('Renewal request submitted. An admin can now approve and renew your access.');
+          return;
+        }
+        if (reqErr.code === '23505') {
+          setRequestMsg('A renewal request is already pending. Please wait for admin approval.');
+          return;
+        }
+        throw reqErr;
+      }
+
+      setRequestMsg('Renewal request submitted. An admin can now approve and renew your access.');
+    } catch (e: any) {
+      setRequestErr(e?.message ?? 'Unable to submit renewal request.');
+    } finally {
+      setRequesting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center px-6">
@@ -860,7 +914,25 @@ const TrialExpired: React.FC<{
             {error}
           </div>
         )}
+        {requestMsg && (
+          <div className="mt-4 text-xs text-green-200 bg-green-500/10 border border-green-500/20 rounded-md p-3">
+            {requestMsg}
+          </div>
+        )}
+        {requestErr && (
+          <div className="mt-4 text-xs text-red-200 bg-red-500/10 border border-red-500/20 rounded-md p-3">
+            {requestErr}
+          </div>
+        )}
         <div className="mt-6 flex gap-3">
+          <button
+            type="button"
+            onClick={requestRenewal}
+            disabled={requesting}
+            className="gi-btn gi-btn-primary px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
+          >
+            {requesting ? 'Submitting…' : 'Request Renewal'}
+          </button>
           <button type="button" onClick={onRefresh} className="gi-btn gi-btn-secondary px-4 py-2.5 text-sm font-semibold">
             Refresh
           </button>

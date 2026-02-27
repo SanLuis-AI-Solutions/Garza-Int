@@ -161,6 +161,24 @@ as $$
   );
 $$;
 
+-- 2d) Optional: user renewal requests from "Access Expired" screen.
+create table if not exists public.access_renewal_requests (
+  id bigint generated always as identity primary key,
+  email text not null,
+  status text not null default 'pending' check (status in ('pending', 'resolved')),
+  requested_at timestamptz not null default now(),
+  resolved_at timestamptz null,
+  resolved_by text null
+);
+
+create index if not exists access_renewal_requests_email_idx on public.access_renewal_requests (email);
+create index if not exists access_renewal_requests_requested_at_idx on public.access_renewal_requests (requested_at desc);
+create unique index if not exists access_renewal_requests_one_pending_per_email
+  on public.access_renewal_requests (lower(email))
+  where status = 'pending';
+
+alter table public.access_renewal_requests enable row level security;
+
 -- 2d) Admin approvals audit trail (ops traceability)
 create table if not exists public.admin_approval_audit (
   id bigint generated always as identity primary key,
@@ -202,6 +220,15 @@ begin
   for r in select policyname from pg_policies where schemaname = 'public' and tablename = 'mfa_exemptions'
   loop
     execute format('drop policy if exists %I on public.mfa_exemptions', r.policyname);
+  end loop;
+end $$;
+
+do $$
+declare r record;
+begin
+  for r in select policyname from pg_policies where schemaname = 'public' and tablename = 'access_renewal_requests'
+  loop
+    execute format('drop policy if exists %I on public.access_renewal_requests', r.policyname);
   end loop;
 end $$;
 
@@ -360,6 +387,42 @@ on public.mfa_exemptions
 for delete
 to authenticated
 using (
+  private.is_admin()
+  and private.is_aal2()
+);
+
+-- access_renewal_requests policies:
+-- - users can request for their own email.
+-- - users can read only their own requests.
+-- - admin can read and resolve requests.
+
+create policy access_renewal_requests_select_self_or_admin
+on public.access_renewal_requests
+for select
+to authenticated
+using (
+  private.is_admin()
+  or lower(email) = private.auth_email()
+);
+
+create policy access_renewal_requests_insert_self
+on public.access_renewal_requests
+for insert
+to authenticated
+with check (
+  lower(email) = private.auth_email()
+  and status = 'pending'
+);
+
+create policy access_renewal_requests_update_admin
+on public.access_renewal_requests
+for update
+to authenticated
+using (
+  private.is_admin()
+  and private.is_aal2()
+)
+with check (
   private.is_admin()
   and private.is_aal2()
 );

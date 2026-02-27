@@ -2,6 +2,26 @@
 
 Tracks notable changes to the Garza ROI app so new sessions can orient quickly.
 
+## 2026-02-27 (Hotfix: In-App Renewal Requests + Renew Reliability)
+- Agent: **Codex (GPT-5)**.
+- Version: **1.1.2**.
+- Why: renew button had repeated `401 Invalid JWT` behavior in production and expired users had no direct in-app renewal request path.
+- What:
+  - Added `Request Renewal` action on **Access Expired** screen.
+  - Added admin-facing **Renewal Requests** panel in Approvals tab with one-click `Approve + Renew`.
+  - Added robust optional-table handling for `access_renewal_requests` and `admin_approval_audit`.
+  - Strengthened approvals mutation invocation:
+    - explicit bearer token header on each function call
+    - session refresh + retry on 401 before forcing re-auth
+  - Applied required SQL objects on live production project (`qsikswtoqwbylxyxwejz`):
+    - `public.access_renewal_requests`
+    - `public.admin_approval_audit`
+  - Deployed `admin-approvals` Edge Function to live production project (`qsikswtoqwbylxyxwejz`).
+- Verification:
+  - `npm run test` (10 tests passed).
+  - `npm run build` (production build passed).
+  - Verified production env Supabase project target used by app is `qsikswtoqwbylxyxwejz`.
+
 ## 2026-02-27 (Hotfix: Approvals + Navigation)
 - Agent: **Codex (GPT-5)**.
 - Version: **1.1.1**.
