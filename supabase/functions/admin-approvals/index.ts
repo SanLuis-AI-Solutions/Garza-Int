@@ -127,20 +127,7 @@ serve(async (req) => {
   if (aal !== 'aal2') {
     return json(403, { error: 'MFA required' }, cors);
   }
-
-  // Verify token is valid and matches the admin email.
-  const userClient = createClient(url, anon, {
-    global: { headers: { Authorization: `Bearer ${jwt}` } },
-    auth: { persistSession: false },
-  });
-  const { data: userData, error: userErr } = await userClient.auth.getUser();
-  if (userErr || !userData?.user) {
-    return json(401, { error: 'Invalid token' }, cors);
-  }
-  const emailFromUser = normalizeEmail(userData.user.email ?? '');
-  if (emailFromUser !== normalizeEmail(ADMIN_EMAIL)) {
-    return json(403, { error: 'Admin only' }, cors);
-  }
+  const actorEmail = emailFromJwt;
 
   const body = await req.json().catch(() => null);
   const action = String(body?.action ?? '') as Action;
@@ -153,7 +140,7 @@ serve(async (req) => {
   logEvent('admin_approvals_request', {
     action,
     emails_count: uniqEmails.length,
-    admin_email: emailFromUser,
+    admin_email: actorEmail,
     has_days: days !== null,
   });
 
@@ -184,7 +171,7 @@ serve(async (req) => {
   const writeAudit = async (status: 'success' | 'error', detail: Record<string, unknown> = {}) => {
     try {
       const { error: auditErr } = await dbClient.from('admin_approval_audit').insert({
-        admin_email: emailFromUser,
+        admin_email: actorEmail,
         action,
         target_emails: uniqEmails,
         days,

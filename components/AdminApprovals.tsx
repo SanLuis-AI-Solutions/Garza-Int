@@ -39,6 +39,12 @@ type RenewalRequestRow = {
   status: 'pending' | 'resolved';
 };
 
+type ToastItem = {
+  id: number;
+  kind: 'success' | 'error' | 'info';
+  message: string;
+};
+
 const formatDateTime = (value: string | null | undefined) => {
   if (!value) return '—';
   const d = new Date(value);
@@ -54,6 +60,16 @@ const isMissingTableError = (err: any, table: string) => {
     msg.includes(table.toLowerCase()) &&
     (msg.includes('does not exist') || msg.includes('schema cache') || msg.includes('could not find the table'))
   );
+};
+
+const getConnectedDbRef = () => {
+  try {
+    const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+    if (!url) return 'unknown';
+    return new URL(url).hostname.split('.')[0] ?? 'unknown';
+  } catch {
+    return 'unknown';
+  }
 };
 
 const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
@@ -77,6 +93,16 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
   const [auditAvailable, setAuditAvailable] = useState(true);
   const [renewalRequests, setRenewalRequests] = useState<RenewalRequestRow[]>([]);
   const [renewalRequestsAvailable, setRenewalRequestsAvailable] = useState(true);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const connectedDbRef = getConnectedDbRef();
+
+  const showToast = (message: string, kind: ToastItem['kind']) => {
+    const id = Date.now() + Math.floor(Math.random() * 1000);
+    setToasts((prev) => [...prev, { id, kind, message }]);
+    window.setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4200);
+  };
 
   const ensureAdminSessionReady = async () => {
     if (!supabase) throw new Error('Supabase is not configured.');
@@ -113,15 +139,8 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     if (!supabase) return;
     await ensureAdminSessionReady();
     const invokeApprovals = async () => {
-      const { data: sData } = await supabase.auth.getSession();
-      const accessToken = sData.session?.access_token ?? null;
-      if (!accessToken) {
-        setReauthRequired(true);
-        throw new Error('Missing session token. Sign out, sign in, and complete MFA, then retry.');
-      }
       const { data, error: invokeErr } = await supabase.functions.invoke('admin-approvals', {
         body: { action: args.action, emails: args.emails.map(normalizeEmail), days: args.days },
-        headers: { Authorization: `Bearer ${accessToken}` },
       });
       const payload = (data ?? null) as Record<string, unknown> | null;
       const context = (invokeErr as any)?.context as Response | undefined;
@@ -173,6 +192,85 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     }
     logUiError('admin_approvals_error', invokeErr, { action: args.action, emails_count: args.emails.length });
     throw new Error(baseMessage);
+  };
+
+  const buildRenewResultMessage = async (emails: string[], days: number) => {
+    if (!supabase) return `Renewed access for ${emails.length} email(s) (+${days} days).`;
+    const normalized = emails.map(normalizeEmail);
+    const { data, error } = await supabase
+      .from('user_entitlements')
+      .select('email,active,expires_at')
+      .in('email', normalized);
+    if (error) return `Renewed access for ${emails.length} email(s) (+${days} days).`;
+    const rows = (data ?? []) as Array<{ email: string; active: boolean; expires_at: string | null }>;
+    const byEmail = new Map<string, string | null>();
+    for (const email of normalized) byEmail.set(email, null);
+    for (const row of rows) {
+      if (!row.active) continue;
+      const e = normalizeEmail(row.email);
+      const cur = byEmail.get(e);
+      const next = row.expires_at;
+      if (!next) {
+        byEmail.set(e, null);
+        continue;
+      }
+      if (!cur || new Date(next).getTime() > new Date(cur).getTime()) byEmail.set(e, next);
+    }
+
+    if (normalized.length === 1) {
+      const exp = byEmail.get(normalized[0]);
+      return exp
+        ? `Renewed ${normalized[0]} until ${formatDateTime(exp)}.`
+        : `Renewed ${normalized[0]} (+${days} days).`;
+    }
+
+    const latest = Array.from(byEmail.values())
+      .filter((x): x is string => Boolean(x))
+      .sort()
+      .at(-1);
+    return latest
+      ? `Renewed ${normalized.length} emails. Latest expiry: ${formatDateTime(latest)}.`
+      : `Renewed access for ${normalized.length} email(s) (+${days} days).`;
+  };
+
+  const buildApproveResultMessage = async (emails: string[]) => {
+    if (!supabase) return `Approved ${emails.length} email(s).`;
+    const normalized = emails.map(normalizeEmail);
+    const { data, error } = await supabase
+      .from('user_entitlements')
+      .select('email,active,expires_at')
+      .in('email', normalized);
+    if (error) return `Approved ${normalized.length} email(s).`;
+
+    const rows = (data ?? []) as Array<{ email: string; active: boolean; expires_at: string | null }>;
+    const byEmail = new Map<string, string | null>();
+    for (const email of normalized) byEmail.set(email, null);
+    for (const row of rows) {
+      if (!row.active) continue;
+      const e = normalizeEmail(row.email);
+      const cur = byEmail.get(e);
+      const next = row.expires_at;
+      if (!next) {
+        byEmail.set(e, null);
+        continue;
+      }
+      if (!cur || new Date(next).getTime() > new Date(cur).getTime()) byEmail.set(e, next);
+    }
+
+    if (normalized.length === 1) {
+      const exp = byEmail.get(normalized[0]);
+      return exp
+        ? `Approved ${normalized[0]}. New expiry: ${formatDateTime(exp)}.`
+        : `Approved ${normalized[0]}.`;
+    }
+
+    const latest = Array.from(byEmail.values())
+      .filter((x): x is string => Boolean(x))
+      .sort()
+      .at(-1);
+    return latest
+      ? `Approved ${normalized.length} emails. Latest expiry: ${formatDateTime(latest)}.`
+      : `Approved ${normalized.length} email(s).`;
   };
 
   const resolveRenewalRequests = async (emails: string[]) => {
@@ -324,14 +422,20 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
   const upsertApproved = async (email: string, approved: boolean) => {
     if (!supabase) return;
     setActionMessage(null);
+    setError(null);
     setSubmitting(true);
     try {
       await callAdminApprovals({ action: approved ? 'approve' : 'revoke', emails: [email] });
       if (approved) await resolveRenewalRequests([email]);
-      setActionMessage(approved ? `Approved ${normalizeEmail(email)}` : `Revoked ${normalizeEmail(email)}`);
+      const message = approved
+        ? await buildApproveResultMessage([email])
+        : `Revoked ${normalizeEmail(email)}.`;
+      setActionMessage(message);
+      showToast(message, 'success');
       await refresh();
     } catch (err: any) {
       setError(err?.message ?? 'Update failed');
+      showToast(err?.message ?? 'Update failed', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -340,13 +444,16 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
   const remove = async (email: string) => {
     if (!supabase) return;
     setActionMessage(null);
+    setError(null);
     setSubmitting(true);
     try {
       await callAdminApprovals({ action: 'remove', emails: [email] });
       setActionMessage(`Removed ${normalizeEmail(email)}`);
+      showToast(`Removed ${normalizeEmail(email)}.`, 'success');
       await refresh();
     } catch (err: any) {
       setError(err?.message ?? 'Delete failed');
+      showToast(err?.message ?? 'Delete failed', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -393,20 +500,23 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     }
 
     setActionMessage(null);
+    setError(null);
     setSubmitting(true);
     try {
       await callAdminApprovals({ action, emails: selectedEmails });
       if (action === 'approve') await resolveRenewalRequests(selectedEmails);
-      setActionMessage(
+      const message =
         action === 'approve'
-          ? `Approved ${selectedEmails.length} email(s)`
+          ? await buildApproveResultMessage(selectedEmails)
           : action === 'revoke'
-          ? `Revoked ${selectedEmails.length} email(s)`
-          : `Removed ${selectedEmails.length} email(s)`
-      );
+          ? `Revoked ${selectedEmails.length} email(s).`
+          : `Removed ${selectedEmails.length} email(s).`;
+      setActionMessage(message);
+      showToast(message, 'success');
       await refresh();
     } catch (err: any) {
       setError(err?.message ?? 'Bulk action failed');
+      showToast(err?.message ?? 'Bulk action failed', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -416,14 +526,18 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     if (!supabase) return;
     if (!emails.length) return;
     setActionMessage(null);
+    setError(null);
     setSubmitting(true);
     try {
       await callAdminApprovals({ action: 'renew', emails, days: renewDays });
       await resolveRenewalRequests(emails);
-      setActionMessage(`Renewed access for ${emails.length} email(s) (+${renewDays} days)`);
+      const msg = await buildRenewResultMessage(emails, renewDays);
+      setActionMessage(msg);
+      showToast(msg, 'success');
       await refresh();
     } catch (err: any) {
       setError(err?.message ?? 'Renew failed');
+      showToast(err?.message ?? 'Renew failed', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -441,13 +555,16 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     if (!supabase) return;
     if (!emails.length) return;
     setActionMessage(null);
+    setError(null);
     setSubmitting(true);
     try {
       await callAdminApprovals({ action: 'mfa_bypass_grant', emails, days: mfaBypassDays });
       setActionMessage(`Granted MFA bypass for ${emails.length} email(s) (+${mfaBypassDays} days)`);
+      showToast(`Granted MFA bypass for ${emails.length} email(s).`, 'success');
       await refresh();
     } catch (err: any) {
       setError(err?.message ?? 'MFA bypass grant failed');
+      showToast(err?.message ?? 'MFA bypass grant failed', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -457,13 +574,16 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     if (!supabase) return;
     if (!emails.length) return;
     setActionMessage(null);
+    setError(null);
     setSubmitting(true);
     try {
       await callAdminApprovals({ action: 'mfa_bypass_revoke', emails });
       setActionMessage(`Revoked MFA bypass for ${emails.length} email(s)`);
+      showToast(`Revoked MFA bypass for ${emails.length} email(s).`, 'success');
       await refresh();
     } catch (err: any) {
       setError(err?.message ?? 'MFA bypass revoke failed');
+      showToast(err?.message ?? 'MFA bypass revoke failed', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -491,15 +611,44 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
   const approveAndRenew = async (email: string) => {
     if (!supabase) return;
     setActionMessage(null);
+    setError(null);
     setSubmitting(true);
     try {
       await callAdminApprovals({ action: 'approve', emails: [email] });
       await callAdminApprovals({ action: 'renew', emails: [email], days: renewDays });
       await resolveRenewalRequests([email]);
-      setActionMessage(`Approved and renewed ${normalizeEmail(email)} (+${renewDays} days)`);
+      const msg = await buildRenewResultMessage([email], renewDays);
+      const finalMsg = `Approved and ${msg.toLowerCase()}`;
+      setActionMessage(finalMsg);
+      showToast(finalMsg, 'success');
       await refresh();
     } catch (err: any) {
       setError(err?.message ?? 'Approve + renew failed');
+      showToast(err?.message ?? 'Approve + renew failed', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const processAllRenewalRequests = async () => {
+    const emails = Array.from(new Set(renewalRequests.map((r) => normalizeEmail(r.email))));
+    if (!emails.length) return;
+    const needsApprove = emails.filter((e) => !Boolean(approvalMap.get(e)?.approved));
+
+    setActionMessage(null);
+    setError(null);
+    setSubmitting(true);
+    try {
+      if (needsApprove.length) await callAdminApprovals({ action: 'approve', emails: needsApprove });
+      await callAdminApprovals({ action: 'renew', emails, days: renewDays });
+      await resolveRenewalRequests(emails);
+      const msg = await buildRenewResultMessage(emails, renewDays);
+      setActionMessage(`Processed ${emails.length} renewal request(s). ${msg}`);
+      showToast(`Processed ${emails.length} renewal request(s).`, 'success');
+      await refresh();
+    } catch (err: any) {
+      setError(err?.message ?? 'Process all renewal requests failed');
+      showToast(err?.message ?? 'Process all renewal requests failed', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -512,6 +661,9 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
           <h3 className="text-lg font-semibold gi-serif">Approvals</h3>
           <p className="mt-1 text-sm gi-muted">
             Admin: <span className="font-mono">{adminEmail}</span>
+          </p>
+          <p className="mt-1 text-xs gi-muted2">
+            Connected DB ref: <span className="font-mono text-white/80">{connectedDbRef}</span>
           </p>
         </div>
         <button
@@ -552,6 +704,16 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
               <p className="mt-1 text-xs gi-muted">
                 Submitted from expired accounts. Use Approve + Renew to restore access quickly.
               </p>
+              <div className="mt-3">
+                <button
+                  type="button"
+                  disabled={submitting || renewalRequests.length === 0}
+                  onClick={processAllRenewalRequests}
+                  className="px-3 py-2 gi-btn gi-btn-secondary text-xs font-semibold disabled:opacity-60"
+                >
+                  Process All Pending (+{renewDays}d)
+                </button>
+              </div>
               <div className="mt-3 overflow-x-auto">
                 <table className="gi-table text-xs">
                   <thead className="gi-thead">
@@ -932,6 +1094,19 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div aria-live="polite" aria-atomic="true" className="fixed right-4 bottom-4 z-[65] space-y-2 gi-print-hide">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={`min-w-[240px] max-w-[380px] gi-card-flat px-3 py-2 text-sm ${
+              toast.kind === 'error' ? 'border border-red-400/40' : toast.kind === 'success' ? 'border border-green-400/35' : ''
+            }`}
+          >
+            <div className="gi-muted text-sm">{toast.message}</div>
+          </div>
+        ))}
       </div>
     </div>
   );

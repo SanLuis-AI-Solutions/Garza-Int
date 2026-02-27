@@ -4,7 +4,7 @@ Use this when transitioning work between sessions or agents. Follow the "Documen
 
 ## Status
 - Current focus: Stabilize and harden Garza ROI Dashboard (security + correctness + ops UX).
-- Last completed (2026-02-27, Agent: Codex/GPT-5): Hotfix released as **1.1.2** adding in-app renewal requests (`Access Expired` -> `Request Renewal`) and admin-side request queue (`Approvals` -> `Renewal Requests`), plus explicit bearer+retry for renew calls.
+- Last completed (2026-02-27, Agent: Codex/GPT-5): Hotfix released as **1.1.3** fixing no-op renew actions (`Renew +14d`) by stabilizing edge auth/invoke flow, adding exact-expiry admin confirmations, bulk renewal-request processing, and renewal request email notification hook.
 
 ## Key Files
 - Security (DB/RLS): `docs/security.sql`
@@ -12,6 +12,7 @@ Use this when transitioning work between sessions or agents. Follow the "Documen
 - Auth + MFA gate: `components/AuthGate.tsx`
 - Admin approvals UI: `components/AdminApprovals.tsx`
 - Admin approvals edge function: `supabase/functions/admin-approvals/index.ts`
+- Renewal notification edge function: `supabase/functions/renewal-request-notify/index.ts`
 - Strategy calculators: `domain/strategies/*.ts`
 - Strategy benchmark tests: `domain/strategies/__tests__/benchmarks.test.ts`
 - Export/report: `services/reportExport.ts`
@@ -25,7 +26,7 @@ Use this when transitioning work between sessions or agents. Follow the "Documen
 - Change log: `docs/CHANGELOG.md`
 
 ## Next Actions
-1. Add Stripe billing (or PayPal) + webhook-driven renewals that extend `user_entitlements.expires_at` automatically.
-2. Add optional notification emails on new approval requests (requires an email provider key; implement as edge function + rate limiting).
+1. Configure `RESEND_API_KEY` (+ optional `RENEWAL_NOTIFY_TO_EMAILS`, `RENEWAL_NOTIFY_FROM_EMAIL`) for production so renewal request emails are delivered.
+2. Add Stripe billing (or PayPal) + webhook-driven renewals that extend `user_entitlements.expires_at` automatically.
 3. Configure repository secrets for scheduled smoke (`E2E_BASE_URL`, `E2E_EMAIL`, `E2E_PASSWORD`, optional `E2E_TOTP_SECRET`, optional mutation flags) and validate the first cron run.
 4. Add screenshot capture/upload to smoke workflow for handoff evidence after each run.

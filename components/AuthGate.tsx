@@ -858,6 +858,20 @@ const TrialExpired: React.FC<{
   const [requestMsg, setRequestMsg] = useState<string | null>(null);
   const [requestErr, setRequestErr] = useState<string | null>(null);
 
+  const notifyAdminRenewalRequest = async (requestedEmail: string) => {
+    if (!supabase) return;
+    try {
+      await supabase.functions.invoke('renewal-request-notify', {
+        body: {
+          email: requestedEmail,
+          requested_at: new Date().toISOString(),
+        },
+      });
+    } catch {
+      // Notification is best-effort and should never block the user request flow.
+    }
+  };
+
   const requestRenewal = async () => {
     if (!supabase) return;
     const normalized = email.trim().toLowerCase();
@@ -877,6 +891,7 @@ const TrialExpired: React.FC<{
             .insert({ email: normalized, approved: false, approved_at: null });
           if (fallbackErr && fallbackErr.code !== '23505') throw fallbackErr;
           setRequestMsg('Renewal request submitted. An admin can now approve and renew your access.');
+          if (!fallbackErr) await notifyAdminRenewalRequest(normalized);
           return;
         }
         if (reqErr.code === '23505') {
@@ -887,6 +902,7 @@ const TrialExpired: React.FC<{
       }
 
       setRequestMsg('Renewal request submitted. An admin can now approve and renew your access.');
+      await notifyAdminRenewalRequest(normalized);
     } catch (e: any) {
       setRequestErr(e?.message ?? 'Unable to submit renewal request.');
     } finally {

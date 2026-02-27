@@ -2,6 +2,25 @@
 
 Tracks notable changes to the Garza ROI app so new sessions can orient quickly.
 
+## 2026-02-27 (Hotfix: Renew Action Reliability + Admin Renewal Ops)
+- Agent: **Codex (GPT-5)**.
+- Version: **1.1.3**.
+- Why: `Renew (+14d)` still behaved like a no-op in production due repeated `401` failures on approvals mutations; admin requested stronger confirmations and renewal-request operations.
+- What:
+  - Fixed approvals invocation path by removing manual auth-header token injection and using SDK-native function invocation with retry/error parsing.
+  - Hardened edge function auth path to trust verified JWT claims (admin email + `aal2`) and removed extra token validation round-trip that was causing repeated `401` responses.
+  - Added admin success confirmations with exact expiry timestamps for approve/renew actions.
+  - Added bulk action: `Process All Pending (+Xd)` for renewal requests.
+  - Kept/validated connected environment diagnostic label: `Connected DB ref`.
+  - Added renewal request email notification hook:
+    - new edge function `renewal-request-notify`
+    - best-effort invocation from expired-account `Request Renewal` flow (does not block request creation if email provider is not configured).
+  - Bumped app version to `1.1.3`.
+- Verification:
+  - `npm run test` (10 tests passed).
+  - `npm run build` (Vite production build passed).
+  - `npm run e2e` (3 smoke tests skipped due environment-gated credentials/secrets).
+
 ## 2026-02-27 (Hotfix: In-App Renewal Requests + Renew Reliability)
 - Agent: **Codex (GPT-5)**.
 - Version: **1.1.2**.
