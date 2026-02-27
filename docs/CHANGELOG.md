@@ -2,6 +2,19 @@
 
 Tracks notable changes to the Garza ROI app so new sessions can orient quickly.
 
+## 2026-02-27 (Versioning + Visibility Fix)
+- Agent: **Codex (GPT-5)**.
+- Why: latest code was pushed but version visibility remained stale; release tracking needed to be simple and reliable.
+- What:
+  - Changed UI version source to compile-time `package.json` version (`__APP_VERSION__`) instead of env-driven version.
+  - Bumped release version to **1.1.0**.
+  - Updated env docs to reflect the new rule: bump `package.json` each release.
+  - Deployed production after this version bump so latest changes are visible.
+- Verification:
+  - `npm run test` (10 tests passed).
+  - `npm run build` (production build passed).
+  - Production deployment completed via Vercel (`--prod`).
+
 ## 2026-02-27 (Reliability Hardening Pack)
 - Agent: **Codex (GPT-5)**.
 - Why: execute all approved hardening suggestions in one safe rollout (access visibility, approvals observability, automated smoke coverage, and performance tuning).

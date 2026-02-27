@@ -1,3 +1,5 @@
+declare const __APP_VERSION__: string;
+
 export const appEnv = () => {
   const fromEnv = import.meta.env.VITE_APP_ENV as string | undefined;
   if (fromEnv) return fromEnv;
@@ -5,7 +7,5 @@ export const appEnv = () => {
 };
 
 export const appVersion = () => {
-  const v = import.meta.env.VITE_APP_VERSION as string | undefined;
-  return (v ?? '').trim() || 'dev';
+  return (__APP_VERSION__ ?? '').trim() || 'dev';
 };
-
