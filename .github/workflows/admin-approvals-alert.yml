@@ -1,0 +1,59 @@
+name: Admin Approvals Alert
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: admin-approvals-alert
+  cancel-in-progress: true
+
+jobs:
+  alert-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CANARY_SUPABASE_URL: ${{ secrets.CANARY_SUPABASE_URL }}
+      CANARY_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.CANARY_SUPABASE_SERVICE_ROLE_KEY }}
+      ADMIN_APPROVALS_ALERT_WINDOW_MINUTES: ${{ vars.ADMIN_APPROVALS_ALERT_WINDOW_MINUTES }}
+      ADMIN_APPROVALS_ALERT_MAX_TOTAL: ${{ vars.ADMIN_APPROVALS_ALERT_MAX_TOTAL }}
+      ADMIN_APPROVALS_ALERT_MAX_401: ${{ vars.ADMIN_APPROVALS_ALERT_MAX_401 }}
+      ADMIN_APPROVALS_ALERT_MAX_500: ${{ vars.ADMIN_APPROVALS_ALERT_MAX_500 }}
+      ADMIN_APPROVALS_ALERT_WEBHOOK_URL: ${{ secrets.ADMIN_APPROVALS_ALERT_WEBHOOK_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check required secrets
+        shell: bash
+        run: |
+          if [[ -z "${CANARY_SUPABASE_URL}" || -z "${CANARY_SUPABASE_SERVICE_ROLE_KEY}" ]]; then
+            echo "Alert check skipped: set CANARY_SUPABASE_URL and CANARY_SUPABASE_SERVICE_ROLE_KEY."
+            exit 0
+          fi
+
+      - name: Run admin approvals error-threshold check
+        id: check
+        shell: bash
+        run: node ./scripts/check-admin-approvals-error-rate.mjs
+
+      - name: Send webhook on threshold breach
+        if: failure() && env.ADMIN_APPROVALS_ALERT_WEBHOOK_URL != ''
+        shell: bash
+        run: |
+          payload=$(cat <<'JSON'
+          {
+            "text": "Garza admin-approvals alert: error threshold exceeded. Check GitHub Actions run details."
+          }
+          JSON
+          )
+          curl -sS -X POST -H "Content-Type: application/json" --data "$payload" "$ADMIN_APPROVALS_ALERT_WEBHOOK_URL"

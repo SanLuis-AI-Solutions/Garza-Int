@@ -15,7 +15,14 @@ const ADMIN_EMAIL = 'contact@sanluisai.com';
 const STRATEGIES = ['DEVELOPER', 'LANDLORD', 'FLIPPER'] as const;
 const DEFAULT_TRIAL_DAYS = 14;
 
-type Action = 'approve' | 'revoke' | 'remove' | 'renew' | 'mfa_bypass_grant' | 'mfa_bypass_revoke';
+type Action =
+  | 'approve'
+  | 'revoke'
+  | 'remove'
+  | 'renew'
+  | 'mfa_bypass_grant'
+  | 'mfa_bypass_revoke'
+  | 'diagnostics';
 
 const json = (status: number, body: unknown, extraHeaders?: Record<string, string>) =>
   new Response(JSON.stringify(body), {
@@ -55,6 +62,14 @@ const decodeJwtPayload = (jwt: string): Record<string, unknown> | null => {
 };
 
 const normalizeEmail = (value: string) => value.trim().toLowerCase();
+
+const getConnectedDbRef = (supabaseUrl: string) => {
+  try {
+    return new URL(supabaseUrl).hostname.split('.')[0] ?? 'unknown';
+  } catch {
+    return 'unknown';
+  }
+};
 
 const parseTrialDays = () => {
   const raw = (Deno.env.get('TRIAL_DAYS') ?? '').trim();
@@ -157,16 +172,18 @@ serve(async (req) => {
   const emails = [...one, ...many].map(normalizeEmail).filter((e) => e && e.includes('@'));
   const uniqEmails = Array.from(new Set(emails));
 
-  if (!uniqEmails.length) return json(400, { error: 'Invalid email(s)' }, cors);
-  if (!['approve', 'revoke', 'remove', 'renew', 'mfa_bypass_grant', 'mfa_bypass_revoke'].includes(action)) {
+  if (!['approve', 'revoke', 'remove', 'renew', 'mfa_bypass_grant', 'mfa_bypass_revoke', 'diagnostics'].includes(action)) {
     return json(400, { error: 'Invalid action' }, cors);
   }
-  if (uniqEmails.includes(normalizeEmail(ADMIN_EMAIL)) && action !== 'approve') {
-    return json(400, { error: 'Cannot revoke/remove the admin email' }, cors);
-  }
-  if (action === 'renew' || action === 'mfa_bypass_grant') {
-    if (days !== null && (!Number.isFinite(days) || days < 1 || days > 365)) {
-      return json(400, { error: 'Invalid days (expected 1..365)' }, cors);
+  if (action !== 'diagnostics') {
+    if (!uniqEmails.length) return json(400, { error: 'Invalid email(s)' }, cors);
+    if (uniqEmails.includes(normalizeEmail(ADMIN_EMAIL)) && action !== 'approve') {
+      return json(400, { error: 'Cannot revoke/remove the admin email' }, cors);
+    }
+    if (action === 'renew' || action === 'mfa_bypass_grant') {
+      if (days !== null && (!Number.isFinite(days) || days < 1 || days > 365)) {
+        return json(400, { error: 'Invalid days (expected 1..365)' }, cors);
+      }
     }
   }
 
@@ -201,6 +218,43 @@ serve(async (req) => {
   };
 
   try {
+    if (action === 'diagnostics') {
+      const functionVersion =
+        Deno.env.get('SUPABASE_FUNCTION_VERSION') ?? Deno.env.get('DENO_DEPLOYMENT_ID') ?? 'unknown';
+      const runtimeVersion = `deno-${Deno.version.deno}`;
+      const connectedDbRef = getConnectedDbRef(url);
+
+      let lastMutation: Record<string, unknown> | null = null;
+      const { data: lastAuditRow, error: lastAuditErr } = await dbClient
+        .from('admin_approval_audit')
+        .select('created_at,admin_email,action,status,target_emails,days,detail')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (lastAuditErr && !looksLikeMissingAuditRelation(lastAuditErr)) {
+        logEvent('admin_approvals_diagnostics_audit_error', { error: lastAuditErr.message });
+      } else if (lastAuditRow) {
+        lastMutation = lastAuditRow as Record<string, unknown>;
+      }
+
+      return json(
+        200,
+        {
+          ok: true,
+          diagnostics: {
+            function_version: functionVersion,
+            runtime_version: runtimeVersion,
+            connected_db_ref: connectedDbRef,
+            generated_at: new Date().toISOString(),
+            admin_email: actorEmail,
+            last_mutation: lastMutation,
+          },
+        },
+        cors
+      );
+    }
+
     if (action === 'remove') {
       const { error } = await dbClient.from('approved_emails').delete().in('email', uniqEmails);
       if (error) throw new Error(`approved_emails_delete: ${error.message}`);

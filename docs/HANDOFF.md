@@ -4,7 +4,7 @@ Use this when transitioning work between sessions or agents. Follow the "Documen
 
 ## Status
 - Current focus: Stabilize and harden Garza ROI Dashboard (security + correctness + ops UX).
-- Last completed (2026-02-27, Agent: Codex/GPT-5): Hotfix closure released as **1.1.4** with production-verified renew recovery (`admin-approvals` v9 returning 200), resolved renewal queue flow, and synchronized version/docs/tag readiness.
+- Last completed (2026-02-27, Agent: Codex/GPT-5): Reliability gaps closure released as **1.1.5** with renew canary verification workflow, approvals error-threshold alerting workflow, and in-app admin diagnostics panel backed by a new edge `diagnostics` action.
 
 ## Key Files
 - Security (DB/RLS): `docs/security.sql`
@@ -22,14 +22,25 @@ Use this when transitioning work between sessions or agents. Follow the "Documen
 - Shared styling (print): `theme.css`
 - Playwright smoke: `e2e/dashboard-smoke.spec.ts`, `playwright.config.ts`
 - Scheduled smoke workflow: `.github/workflows/production-smoke.yml`
+- Renew canary workflow: `.github/workflows/renew-canary.yml`
+- Approvals alert workflow: `.github/workflows/admin-approvals-alert.yml`
+- Canary verification script: `scripts/verify-renew-canary.mjs`
+- Alert threshold script: `scripts/check-admin-approvals-error-rate.mjs`
 - Operating protocol: `OPERATING_MODEL.md`
 - Change log: `docs/CHANGELOG.md`
 - Reusable incident prompt: `docs/CODEX_INCIDENT_FIX_PROMPT.md`
+- Reusable incident skill/agent/workflow:
+  - `.agent/skills/incident-proof-fix/SKILL.md`
+  - `.agent/agents/incident-responder.md`
+  - `.agent/workflows/incident-hotfix.md`
 
 ## Next Actions
-1. Configure `RESEND_API_KEY` (+ optional `RENEWAL_NOTIFY_TO_EMAILS`, `RENEWAL_NOTIFY_FROM_EMAIL`) for production so renewal request emails are delivered.
-2. Add Stripe billing (or PayPal) + webhook-driven renewals that extend `user_entitlements.expires_at` automatically.
-3. Configure repository secrets for scheduled smoke (`E2E_BASE_URL`, `E2E_EMAIL`, `E2E_PASSWORD`, optional `E2E_TOTP_SECRET`, optional mutation flags) and validate the first cron run.
+1. Configure secrets for new canary/alert workflows:
+   - `CANARY_SUPABASE_URL`
+   - `CANARY_SUPABASE_SERVICE_ROLE_KEY`
+   - optional `ADMIN_APPROVALS_ALERT_WEBHOOK_URL`
+2. Set repository vars for alert thresholds (`ADMIN_APPROVALS_ALERT_WINDOW_MINUTES`, `ADMIN_APPROVALS_ALERT_MAX_TOTAL`, `ADMIN_APPROVALS_ALERT_MAX_401`, `ADMIN_APPROVALS_ALERT_MAX_500`) and run both workflows once via manual dispatch.
+3. Configure `RESEND_API_KEY` (+ optional `RENEWAL_NOTIFY_TO_EMAILS`, `RENEWAL_NOTIFY_FROM_EMAIL`) for production so renewal request emails are delivered.
 4. Add screenshot capture/upload to smoke workflow for handoff evidence after each run.
 
 ## Postmortem and Guardrails (2026-02-27)
@@ -41,7 +52,7 @@ Use this when transitioning work between sessions or agents. Follow the "Documen
   3. Require before/after SQL for the exact failing record on every fix attempt.
   4. Keep client and server changes separated into small verifiable steps.
   5. Do not claim fix completion until production logs show success and pending rows are resolved.
-- Remaining reliability gaps:
-  - Add an automated smoke that performs a safe canary renew in a non-prod environment and checks audit + entitlement changes.
-  - Add alerting when `admin-approvals` emits `401`/`500` above threshold.
-  - Add an in-app admin diagnostics panel for function version + last mutation status.
+- Closure update:
+  - Safe renew canary smoke + entitlement/audit verification: implemented.
+  - `admin-approvals` `401/500` threshold alerting: implemented.
+  - In-app diagnostics panel (function version + last mutation): implemented.

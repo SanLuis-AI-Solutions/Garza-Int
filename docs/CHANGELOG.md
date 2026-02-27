@@ -2,6 +2,35 @@
 
 Tracks notable changes to the Garza ROI app so new sessions can orient quickly.
 
+## 2026-02-27 (Reliability Gaps Closure + Incident Workflow Kit)
+- Agent: **Codex (GPT-5)**.
+- Version: **1.1.5**.
+- Why: close the three remaining post-incident reliability gaps (renew canary assertion, approvals alerting, in-app diagnostics) and package a reusable incident-response operating set for future projects.
+- What:
+  - Added read-only `diagnostics` action in `supabase/functions/admin-approvals/index.ts` that returns:
+    - function version/runtime
+    - connected DB ref
+    - latest mutation summary from `admin_approval_audit`
+  - Added in-app **Admin Diagnostics** panel in Approvals UI with function version/runtime and last mutation action/status/time.
+  - Added renew canary verification automation:
+    - new script: `scripts/verify-renew-canary.mjs`
+    - new workflow: `.github/workflows/renew-canary.yml`
+    - validates both entitlement expiry delta and matching successful renew audit row.
+  - Added scheduled audit-threshold alerting for approvals:
+    - new script: `scripts/check-admin-approvals-error-rate.mjs`
+    - new workflow: `.github/workflows/admin-approvals-alert.yml`
+    - supports optional webhook notification.
+  - Hardened Playwright renew smoke assertions to match current admin toast content.
+  - Created reusable incident package for cross-project reuse:
+    - agent: `.agent/agents/incident-responder.md`
+    - skill: `.agent/skills/incident-proof-fix/SKILL.md`
+    - workflow: `.agent/workflows/incident-hotfix.md`
+  - Updated `.agent/ARCHITECTURE.md`, `skills-catalog.txt`, `agents-catalog.txt`, and `workflows-catalog.txt` with new incident assets.
+- Verification:
+  - `npm run test` (10/10 passed).
+  - `npm run build` (Vite production build passed).
+  - `npm run e2e` (3 smoke tests skipped due env-gated credentials/secrets).
+
 ## 2026-02-27 (Hotfix Closure: Renew Button Production Recovery)
 - Agent: **Codex (GPT-5)**.
 - Version: **1.1.4**.

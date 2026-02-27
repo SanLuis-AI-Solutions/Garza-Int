@@ -8,6 +8,7 @@ const totpSecret = process.env.E2E_TOTP_SECRET;
 const renewEmail = process.env.E2E_RENEW_EMAIL;
 const allowMutations = process.env.E2E_ALLOW_MUTATIONS === 'true';
 const hasLoginCreds = Boolean(email && password);
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const loginAndSettle = async (page: Page) => {
   if (!hasLoginCreds) {
@@ -80,12 +81,17 @@ test.describe('Dashboard smoke', () => {
     await page.getByTestId('quick-add-email').fill(renewEmail!);
     await page.getByTestId('quick-add-renew-days').fill('1');
     await page.getByTestId('quick-add-approve').click();
-    await expect(page.getByText(/Approved .* \(\+1 days\)/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(new RegExp(`Approved\\s+${escapeRegex(renewEmail!)}`, 'i'))).toBeVisible({
+      timeout: 15_000,
+    });
 
     await page.getByTestId('approval-search').fill(renewEmail!);
     const row = page.locator('tr', { has: page.getByRole('cell', { name: renewEmail!, exact: true }) });
     await expect(row).toBeVisible({ timeout: 15_000 });
     await row.getByRole('button', { name: /Renew \(\+1d\)/i }).click();
-    await expect(page.getByText(/Renewed access for 1 email\(s\) \(\+1 days\)/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(new RegExp(`Renewed\\s+${escapeRegex(renewEmail!)}`, 'i'))).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(row.getByText(/Active until/i)).toBeVisible({ timeout: 15_000 });
   });
 });

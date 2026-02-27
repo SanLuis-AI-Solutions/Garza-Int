@@ -1,0 +1,82 @@
+name: Renew Canary
+
+on:
+  schedule:
+    - cron: "20 14 * * 1-5"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: renew-canary
+  cancel-in-progress: true
+
+jobs:
+  renew-canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+      E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+      E2E_TOTP_SECRET: ${{ secrets.E2E_TOTP_SECRET }}
+      E2E_RENEW_EMAIL: ${{ secrets.E2E_RENEW_EMAIL }}
+      E2E_RENEW_DAYS: 1
+      E2E_ALLOW_MUTATIONS: "true"
+      CANARY_SUPABASE_URL: ${{ secrets.CANARY_SUPABASE_URL }}
+      CANARY_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.CANARY_SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Check required secrets
+        id: gate
+        shell: bash
+        run: |
+          required=(
+            E2E_BASE_URL
+            E2E_EMAIL
+            E2E_PASSWORD
+            E2E_RENEW_EMAIL
+            CANARY_SUPABASE_URL
+            CANARY_SUPABASE_SERVICE_ROLE_KEY
+          )
+          for key in "${required[@]}"; do
+            if [[ -z "${!key}" ]]; then
+              echo "run=false" >> "$GITHUB_OUTPUT"
+              echo "Canary skipped: missing required secret $key."
+              exit 0
+            fi
+          done
+          echo "run=true" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        if: steps.gate.outputs.run == 'true'
+        run: npm ci
+
+      - name: Install Playwright browser
+        if: steps.gate.outputs.run == 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Stamp canary start
+        if: steps.gate.outputs.run == 'true'
+        id: stamp
+        shell: bash
+        run: echo "started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Run renew mutation smoke
+        if: steps.gate.outputs.run == 'true'
+        run: npx playwright test -g "admin renew flow executes for configured smoke account"
+
+      - name: Verify renew entitlement + audit delta
+        if: steps.gate.outputs.run == 'true'
+        env:
+          RENEW_STARTED_AT: ${{ steps.stamp.outputs.started_at }}
+        run: node ./scripts/verify-renew-canary.mjs

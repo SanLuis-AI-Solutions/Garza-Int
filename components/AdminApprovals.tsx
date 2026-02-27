@@ -39,6 +39,17 @@ type RenewalRequestRow = {
   status: 'pending' | 'resolved';
 };
 
+type AdminAction = 'approve' | 'revoke' | 'remove' | 'renew' | 'mfa_bypass_grant' | 'mfa_bypass_revoke' | 'diagnostics';
+
+type AdminDiagnostics = {
+  function_version?: string;
+  runtime_version?: string;
+  connected_db_ref?: string;
+  generated_at?: string;
+  admin_email?: string;
+  last_mutation?: Record<string, unknown> | null;
+};
+
 type ToastItem = {
   id: number;
   kind: 'success' | 'error' | 'info';
@@ -94,6 +105,8 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
   const [renewalRequests, setRenewalRequests] = useState<RenewalRequestRow[]>([]);
   const [renewalRequestsAvailable, setRenewalRequestsAvailable] = useState(true);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [diagnostics, setDiagnostics] = useState<AdminDiagnostics | null>(null);
+  const [diagnosticsError, setDiagnosticsError] = useState<string | null>(null);
   const connectedDbRef = getConnectedDbRef();
 
   const showToast = (message: string, kind: ToastItem['kind']) => {
@@ -131,16 +144,13 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     }
   };
 
-  const callAdminApprovals = async (args: {
-    action: 'approve' | 'revoke' | 'remove' | 'renew' | 'mfa_bypass_grant' | 'mfa_bypass_revoke';
-    emails: string[];
-    days?: number;
-  }) => {
+  const callAdminApprovals = async (args: { action: AdminAction; emails?: string[]; days?: number }) => {
     if (!supabase) return;
     await ensureAdminSessionReady();
+    const normalizedEmails = (args.emails ?? []).map(normalizeEmail);
     const invokeApprovals = async () => {
       const { data, error: invokeErr } = await supabase.functions.invoke('admin-approvals', {
-        body: { action: args.action, emails: args.emails.map(normalizeEmail), days: args.days },
+        body: { action: args.action, emails: normalizedEmails, days: args.days },
       });
       const payload = (data ?? null) as Record<string, unknown> | null;
       const context = (invokeErr as any)?.context as Response | undefined;
@@ -180,9 +190,9 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
       setReauthRequired(false);
       logUiEvent('admin_approvals_action_success', {
         action: args.action,
-        emails_count: args.emails.length,
+        emails_count: normalizedEmails.length,
       });
-      return;
+      return (payload ?? contextPayload ?? {}) as Record<string, unknown>;
     }
 
     const payloadError = contextPayload?.error ?? contextPayload?.message ?? payload?.error ?? payload?.message;
@@ -193,16 +203,34 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
 
     if (status === 401) {
       setReauthRequired(true);
-      logUiError('admin_approvals_401', invokeErr, { action: args.action, emails_count: args.emails.length });
+      logUiError('admin_approvals_401', invokeErr, { action: args.action, emails_count: normalizedEmails.length });
       throw new Error(`${baseMessage} Session may be expired. Sign out, sign back in, and complete MFA, then retry.`);
     }
     if (status === 403) {
       setReauthRequired(true);
-      logUiError('admin_approvals_403', invokeErr, { action: args.action, emails_count: args.emails.length });
+      logUiError('admin_approvals_403', invokeErr, { action: args.action, emails_count: normalizedEmails.length });
       throw new Error(`${baseMessage} Admin + MFA access is required for this action.`);
     }
-    logUiError('admin_approvals_error', invokeErr, { action: args.action, emails_count: args.emails.length });
+    logUiError('admin_approvals_error', invokeErr, { action: args.action, emails_count: normalizedEmails.length });
     throw new Error(baseMessage);
+  };
+
+  const fetchDiagnostics = async () => {
+    if (!supabase) return;
+    try {
+      setDiagnosticsError(null);
+      const payload = await callAdminApprovals({ action: 'diagnostics' });
+      const nextDiagnostics = payload?.diagnostics as AdminDiagnostics | undefined;
+      if (!nextDiagnostics || typeof nextDiagnostics !== 'object') {
+        setDiagnostics(null);
+        setDiagnosticsError('Diagnostics payload is unavailable.');
+        return;
+      }
+      setDiagnostics(nextDiagnostics);
+    } catch (err: any) {
+      setDiagnostics(null);
+      setDiagnosticsError(err?.message ?? 'Diagnostics request failed');
+    }
   };
 
   const buildRenewResultMessage = async (emails: string[], days: number) => {
@@ -408,6 +436,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
         setRenewalRequests([]);
         setAuditRows([]);
       }
+      await fetchDiagnostics();
       setSelected({});
     } catch (err: any) {
       setError(err?.message ?? 'Failed to load approvals');
@@ -666,6 +695,15 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     }
   };
 
+  const lastMutation =
+    diagnostics?.last_mutation && typeof diagnostics.last_mutation === 'object'
+      ? (diagnostics.last_mutation as Record<string, unknown>)
+      : null;
+  const lastMutationStatus = typeof lastMutation?.status === 'string' ? lastMutation.status : '—';
+  const lastMutationAction = typeof lastMutation?.action === 'string' ? lastMutation.action : '—';
+  const lastMutationTime =
+    typeof lastMutation?.created_at === 'string' ? formatDateTime(lastMutation.created_at) : '—';
+
   return (
     <div className="gi-card p-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -686,6 +724,34 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
         >
           Refresh
         </button>
+      </div>
+
+      <div className="mt-4 gi-card-flat p-3">
+        <div className="text-xs font-semibold text-white/90">Admin Diagnostics</div>
+        <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+          <div className="gi-muted">
+            Function version:{' '}
+            <span className="font-mono text-white/80">
+              {typeof diagnostics?.function_version === 'string' ? diagnostics.function_version : 'unknown'}
+            </span>
+          </div>
+          <div className="gi-muted">
+            Runtime:{' '}
+            <span className="font-mono text-white/80">
+              {typeof diagnostics?.runtime_version === 'string' ? diagnostics.runtime_version : 'unknown'}
+            </span>
+          </div>
+          <div className="gi-muted">
+            Last mutation:{' '}
+            <span className="font-mono text-white/80">
+              {lastMutationAction} / {lastMutationStatus}
+            </span>
+          </div>
+          <div className="gi-muted">
+            Last mutation at: <span className="font-mono text-white/80">{lastMutationTime}</span>
+          </div>
+        </div>
+        {diagnosticsError && <p className="mt-2 text-xs text-amber-200">{diagnosticsError}</p>}
       </div>
 
       {reauthRequired && (
