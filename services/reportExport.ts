@@ -2,6 +2,9 @@ import type { Project, StrategyResults } from '../domain/strategies/types';
 import { downloadText, toCsv } from './csv';
 import { appEnv, appVersion } from './appMeta';
 
+type RowValue = string | number | boolean;
+type SheetRows = RowValue[][];
+
 const fmtMoney = (v: number) => Number(v).toFixed(2);
 
 const safeSlug = (s: string) =>
@@ -12,13 +15,21 @@ const safeSlug = (s: string) =>
     .replace(/(^-|-$)/g, '')
     .slice(0, 48);
 
-const buildKpiCsv = (results: StrategyResults) => {
-  const headers = ['Label', 'Format', 'Value'];
-  const rows = results.kpis.map((k) => [k.label, k.format, k.value]);
-  return toCsv([headers, ...rows]);
+const normalizeCell = (value: unknown): RowValue => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') return value;
+  if (value === null || value === undefined) return '';
+  return JSON.stringify(value);
 };
 
-const buildMetaCsv = (project: Project) => {
+const buildKpiRows = (results: StrategyResults): SheetRows => {
+  const headers = ['Label', 'Format', 'Value'];
+  const rows = results.kpis.map((k) => [k.label, k.format, k.value]);
+  return [headers, ...rows];
+};
+
+const buildMetaRows = (project: Project): SheetRows => {
   const headers = ['Field', 'Value'];
   const rows = [
     ['exported_at', new Date().toISOString()],
@@ -32,15 +43,22 @@ const buildMetaCsv = (project: Project) => {
     ['created_at', project.createdAt],
     ['updated_at', project.updatedAt],
   ];
-  return toCsv([headers, ...rows]);
+  return [headers, ...rows];
 };
 
-const buildDeveloper = (project: Project, results: StrategyResults) => {
+const buildInputsRows = (project: Project): SheetRows => {
+  const headers = ['Input', 'Value'];
+  const entries = Object.entries(project.inputs ?? {}).sort(([a], [b]) => a.localeCompare(b));
+  return [headers, ...entries.map(([k, v]) => [k, normalizeCell(v)])];
+};
+
+const buildDeveloperSheets = (results: StrategyResults) => {
   const r = results as any;
   const months = Math.max(1, r.totals?.monthsToBuild ?? 1);
   const horizons = [1, 5, 10, 30];
   const scaleForYears = (years: number) => (years * 12) / months;
-  const milestones = toCsv([
+
+  const milestones: SheetRows = [
     [
       'Year',
       'Scale (Deals per year extrapolated)',
@@ -59,26 +77,24 @@ const buildDeveloper = (project: Project, results: StrategyResults) => {
       (r.totals.annualizedRoiOnTotalCost * 100).toFixed(2),
       (r.totals.profitMargin * 100).toFixed(2),
     ]),
-  ]);
+  ];
 
-  const costLines = toCsv([
+  const costLines: SheetRows = [
     ['Line', 'Amount'],
     ...(r.costLines ?? r.breakdown ?? []).map((b: any) => [b.name, fmtMoney(b.value)]),
     ['Total Project Cost', fmtMoney(r.totals.totalProjectCost)],
-  ]);
+  ];
 
-  return {
-    milestones,
-    costLines,
-  };
+  return { milestones, costLines };
 };
 
-const buildFlipper = (project: Project, results: StrategyResults) => {
+const buildFlipperSheets = (results: StrategyResults) => {
   const r = results as any;
   const months = Math.max(1, r.totals?.projectDurationMonths ?? 1);
   const horizons = [1, 5, 10, 30];
   const scaleForYears = (years: number) => (years * 12) / months;
-  const milestones = toCsv([
+
+  const milestones: SheetRows = [
     [
       'Year',
       'Scale (Deals per year extrapolated)',
@@ -99,29 +115,40 @@ const buildFlipper = (project: Project, results: StrategyResults) => {
       fmtMoney(r.totals.dailyHoldingCost),
       fmtMoney(r.totals.cashInvested),
     ]),
-  ]);
+  ];
 
-  const costLines = toCsv([
+  const costLines: SheetRows = [
     ['Line', 'Amount'],
     ...(r.costLines ?? r.breakdown ?? []).map((b: any) => [b.name, fmtMoney(b.value)]),
     ['Total Deal Cost', fmtMoney(r.totals.totalCost)],
-  ]);
+  ];
 
-  return {
-    milestones,
-    costLines,
-  };
+  return { milestones, costLines };
 };
 
-const buildLandlord = (project: Project, results: StrategyResults) => {
+const buildLandlordSheets = (results: StrategyResults) => {
   const r = results as any;
-  const cashFlow = r.cashFlow ?? [];
+  const cashFlow = Array.isArray(r.cashFlow) ? r.cashFlow : [];
+  const fallback = {
+    year: 0,
+    grossRevenue: 0,
+    effectiveRevenue: 0,
+    opex: 0,
+    noi: 0,
+    debtService: 0,
+    cashFlow: 0,
+    propertyValue: 0,
+    loanBalance: 0,
+    equity: 0,
+    dscr: 0,
+    cashOnCash: 0,
+  };
   const horizons = [1, 5, 10, 30];
-  const atYear = (year: number) => cashFlow[Math.min(Math.max(1, year), cashFlow.length) - 1];
+  const atYear = (year: number) => cashFlow[Math.min(Math.max(1, year), cashFlow.length) - 1] ?? fallback;
   const cumulativeCashFlow = (year: number) =>
     cashFlow.slice(0, Math.min(Math.max(1, year), cashFlow.length)).reduce((s: number, rr: any) => s + rr.cashFlow, 0);
 
-  const milestones = toCsv([
+  const milestones: SheetRows = [
     ['Year', 'Annual Cash Flow', 'Cumulative Cash Flow', 'Property Value', 'Loan Balance', 'Equity', 'DSCR', 'Cash-on-Cash %'],
     ...horizons.map((y) => {
       const row = atYear(y);
@@ -136,10 +163,10 @@ const buildLandlord = (project: Project, results: StrategyResults) => {
         (row.cashOnCash * 100).toFixed(2) + '%',
       ];
     }),
-  ]);
+  ];
 
   let running = 0;
-  const cashflowCsv = toCsv([
+  const cashflow: SheetRows = [
     [
       'Year',
       'Gross Revenue',
@@ -173,144 +200,53 @@ const buildLandlord = (project: Project, results: StrategyResults) => {
         (row.cashOnCash * 100).toFixed(2) + '%',
       ];
     }),
-  ]);
+  ];
 
-  const opexLines = toCsv([
+  const opexLines: SheetRows = [
     ['Line', 'Amount (Year 1 model)'],
     ...(r.opexLines ?? []).map((b: any) => [b.name, fmtMoney(b.value)]),
-  ]);
+  ];
 
-  return { milestones, cashflowCsv, opexLines };
+  return { milestones, cashflow, opexLines };
 };
 
-const buildPrintHtml = (project: Project, results: StrategyResults) => {
-  const title = `${project.name} (${project.strategy})`;
-  const kpiRows = results.kpis
-    .map((k) => `<tr><td>${k.label}</td><td style="text-align:right;font-variant-numeric:tabular-nums">${k.value}</td><td>${k.format}</td></tr>`)
-    .join('');
+const buildKpiCsv = (results: StrategyResults) => toCsv(buildKpiRows(results));
 
-  const strategyBlock = (() => {
-    if (results.strategy === 'LANDLORD') {
-      const rows = (results as any).cashFlow
-        .slice(0, 30)
-        .map(
-          (r: any) =>
-            `<tr><td>${r.year}</td><td style="text-align:right">${fmtMoney(r.cashFlow)}</td><td style="text-align:right">${fmtMoney(r.equity)}</td><td style="text-align:right">${fmtMoney(r.propertyValue)}</td></tr>`
-        )
-        .join('');
-      return `
-        <h2>Landlord Cash Flow (30y)</h2>
-        <table>
-          <thead><tr><th>Year</th><th style="text-align:right">Cash Flow</th><th style="text-align:right">Equity</th><th style="text-align:right">Value</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      `;
-    }
-    const lines = ((results as any).costLines ?? (results as any).breakdown ?? [])
-      .map((b: any) => `<tr><td>${b.name}</td><td style="text-align:right">${fmtMoney(b.value)}</td></tr>`)
-      .join('');
-    return `
-      <h2>Cost Lines</h2>
-      <table>
-        <thead><tr><th>Line</th><th style="text-align:right">Amount</th></tr></thead>
-        <tbody>${lines}</tbody>
-      </table>
-    `;
-  })();
-
-  // Keep HTML self-contained; user can Print -> Save as PDF.
-  return `<!doctype html>
-  <html>
-    <head>
-      <meta charset="utf-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <title>${title}</title>
-      <style>
-        :root { color-scheme: light; }
-        body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Arial, sans-serif; margin: 28px; color: #0b1620; }
-        h1 { margin: 0 0 6px 0; font-size: 20px; }
-        .muted { color: #445462; font-size: 12px; margin-bottom: 18px; }
-        h2 { margin: 20px 0 8px 0; font-size: 14px; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        th, td { border: 1px solid #d8e0e7; padding: 8px 10px; }
-        th { background: #f4f7fa; text-align: left; }
-        @media print {
-          body { margin: 10mm; }
-          h2 { break-after: avoid; }
-        }
-      </style>
-    </head>
-    <body>
-      <h1>${title}</h1>
-      <div class="muted">Exported ${new Date().toLocaleString()}</div>
-
-      <h2>KPIs</h2>
-      <table>
-        <thead><tr><th>Label</th><th style="text-align:right">Value</th><th>Format</th></tr></thead>
-        <tbody>${kpiRows}</tbody>
-      </table>
-
-      ${strategyBlock}
-    </body>
-  </html>`;
+export const printProjectReport = (_args: { project: Project; results: StrategyResults }) => {
+  window.print();
 };
 
-export const printProjectReport = (args: { project: Project; results: StrategyResults }) => {
-  const w = window.open('', '_blank', 'noopener,noreferrer');
-  if (!w) {
-    alert('Popup blocked. Allow popups to print/save a PDF report.');
-    return;
-  }
-  w.document.open();
-  w.document.write(buildPrintHtml(args.project, args.results));
-  w.document.close();
-  // Let layout settle then show print dialog.
-  setTimeout(() => w.print(), 250);
-};
-
-export const downloadProjectReportZip = async (args: { project: Project; results: StrategyResults }) => {
+export const downloadProjectReportWorkbook = async (args: { project: Project; results: StrategyResults }) => {
   const { project, results } = args;
   const slug = safeSlug(project.name);
   const base = `${slug || 'project'}_${project.strategy.toLowerCase()}_${new Date().toISOString().slice(0, 10)}`;
 
-  const files: Record<string, string> = {
-    'meta.csv': buildMetaCsv(project),
-    'kpis.csv': buildKpiCsv(results),
-    'project.json': JSON.stringify({ ...project, resultsStrategy: results.strategy }, null, 2),
-    'inputs.json': JSON.stringify(project.inputs, null, 2),
+  const XLSX = await import('xlsx');
+  const workbook = XLSX.utils.book_new();
+  const addSheet = (name: string, rows: SheetRows) => {
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(rows), name.slice(0, 31));
   };
 
+  addSheet('Meta', buildMetaRows(project));
+  addSheet('KPIs', buildKpiRows(results));
+  addSheet('Inputs', buildInputsRows(project));
+
   if (results.strategy === 'DEVELOPER') {
-    const d = buildDeveloper(project, results);
-    files['milestones_1_5_10_30.csv'] = d.milestones;
-    files['cost_lines.csv'] = d.costLines;
+    const d = buildDeveloperSheets(results);
+    addSheet('Milestones_1_5_10_30', d.milestones);
+    addSheet('Cost_Lines', d.costLines);
   } else if (results.strategy === 'LANDLORD') {
-    const l = buildLandlord(project, results);
-    files['milestones_1_5_10_30.csv'] = l.milestones;
-    files['cashflow_30y.csv'] = l.cashflowCsv;
-    files['opex_lines.csv'] = l.opexLines;
+    const l = buildLandlordSheets(results);
+    addSheet('Milestones_1_5_10_30', l.milestones);
+    addSheet('Cashflow_30Y', l.cashflow);
+    addSheet('Opex_Lines', l.opexLines);
   } else if (results.strategy === 'FLIPPER') {
-    const f = buildFlipper(project, results);
-    files['milestones_1_5_10_30.csv'] = f.milestones;
-    files['cost_lines.csv'] = f.costLines;
+    const f = buildFlipperSheets(results);
+    addSheet('Milestones_1_5_10_30', f.milestones);
+    addSheet('Cost_Lines', f.costLines);
   }
 
-  // Build a zip on-demand to avoid adding weight to initial bundle.
-  const { zipSync, strToU8 } = await import('fflate');
-  const zipped = zipSync(
-    Object.fromEntries(Object.entries(files).map(([name, content]) => [`${base}/${name}`, strToU8(content)])),
-    { level: 6 }
-  );
-
-  const blob = new Blob([zipped], { type: 'application/zip' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${base}.zip`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  XLSX.writeFile(workbook, `${base}.xlsx`, { compression: true });
 };
 
 export const downloadQuickKpisCsv = (args: { project: Project; results: StrategyResults }) => {

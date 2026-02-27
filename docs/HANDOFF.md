@@ -4,7 +4,7 @@ Use this when transitioning work between sessions or agents. Follow the "Documen
 
 ## Status
 - Current focus: Stabilize and harden Garza ROI Dashboard (security + correctness + ops UX).
-- Last completed (2026-02-09): Strategy entitlements (time-limited access to all 3 strategies) enforced by RLS + Edge Function granting on approval + admin renew controls in Approvals UI.
+- Last completed (2026-02-27, Agent: Codex/GPT-5): Reliability hotfix release for approvals auth handling, report controls, print/PDF behavior, and multi-sheet `.xlsx` export; executed one-time production renewal for `jose@garzaintl.com` (+14 days, now expiring 2026-03-13 UTC).
 
 ## Key Files
 - Security (DB/RLS): `docs/security.sql`
@@ -16,6 +16,7 @@ Use this when transitioning work between sessions or agents. Follow the "Documen
 - Strategy benchmark tests: `domain/strategies/__tests__/benchmarks.test.ts`
 - Export/report: `services/reportExport.ts`
 - Dashboard shell: `DashboardApp.tsx`
+- Shared styling (print): `theme.css`
 - Operating protocol: `OPERATING_MODEL.md`
 - Change log: `docs/CHANGELOG.md`
 

@@ -53,30 +53,36 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     days?: number;
   }) => {
     if (!supabase) return;
-    const { data, error: sErr } = await supabase.auth.getSession();
-    if (sErr) throw sErr;
-    const token = data.session?.access_token;
-    if (!token) throw new Error('Missing session token');
-
-    const baseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-    if (!baseUrl) throw new Error('Missing VITE_SUPABASE_URL');
-
-    const res = await fetch(`${baseUrl}/functions/v1/admin-approvals`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ action: args.action, emails: args.emails.map(normalizeEmail), days: args.days }),
+    const { data, error: invokeErr } = await supabase.functions.invoke('admin-approvals', {
+      body: { action: args.action, emails: args.emails.map(normalizeEmail), days: args.days },
     });
 
-    const payload = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const msg =
-        (payload as any)?.error ??
-        `Approvals request failed (${res.status}). If the edge function is not deployed yet, deploy it as supabase/functions/admin-approvals.`;
-      throw new Error(msg);
+    const payload = (data ?? null) as Record<string, unknown> | null;
+    if (!invokeErr) {
+      const bodyErr = payload?.error;
+      if (typeof bodyErr === 'string' && bodyErr.trim()) throw new Error(bodyErr);
+      const bodyMsg = payload?.message;
+      if (typeof bodyMsg === 'string' && bodyMsg.trim()) throw new Error(bodyMsg);
+      return;
     }
+
+    const context = (invokeErr as any)?.context as Response | undefined;
+    const status = typeof context?.status === 'number' ? context.status : null;
+    const contextPayload = context ? await context.clone().json().catch(() => null) : null;
+
+    const payloadError = contextPayload?.error ?? contextPayload?.message ?? payload?.error ?? payload?.message;
+    const baseMessage =
+      typeof payloadError === 'string' && payloadError.trim()
+        ? payloadError
+        : invokeErr.message || `Approvals request failed${status ? ` (${status})` : ''}.`;
+
+    if (status === 401) {
+      throw new Error(`${baseMessage} Session may be expired. Sign out, sign back in, and complete MFA, then retry.`);
+    }
+    if (status === 403) {
+      throw new Error(`${baseMessage} Admin + MFA access is required for this action.`);
+    }
+    throw new Error(baseMessage);
   };
 
   const refresh = async () => {

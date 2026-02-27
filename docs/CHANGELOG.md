@@ -2,6 +2,22 @@
 
 Tracks notable changes to the Garza ROI app so new sessions can orient quickly.
 
+## 2026-02-27
+- Agent: **Codex (GPT-5)**.
+- Why: customer-facing reliability fixes for approvals renewals, PDF behavior, and export format; plus urgent access renewal request for `jose@garzaintl.com`.
+- What:
+  - Admin approvals now call the Edge Function via `supabase.functions.invoke('admin-approvals')` with improved error parsing (`error` -> `message` -> SDK fallback) and explicit 401/403 guidance.
+  - Removed the broken **Report a problem** button from the dashboard header.
+  - PDF action now uses native browser print (`window.print()`) for the current view (Dashboard/Detail), with print CSS to hide navigation/topbar controls and keep printable content visible.
+  - **Export Report** now downloads one `.xlsx` workbook with multiple sheets (`Meta`, `KPIs`, `Inputs`, and strategy-specific sheets) instead of ZIP-of-CSV files.
+  - One-time production data action executed: renewed `jose@garzaintl.com` access for +14 days.
+- Verification:
+  - `npm run test` (10 tests passed).
+  - `npm run build` (Vite production build passed).
+  - Production DB verification after renewal:
+    - `approved_emails.approved = true`, `approved_at = 2026-02-27 15:43:42+00`.
+    - `user_entitlements` for `DEVELOPER/LANDLORD/FLIPPER` all active with `expires_at = 2026-03-13 15:43:42+00`.
+
 ## 2026-02-06
 - Security: enforced approval + MFA at the database layer (RLS) via `docs/security.sql`.
 - Security: approvals mutations moved to a Supabase Edge Function (`supabase/functions/admin-approvals`) so only admin+AAL2 can approve/revoke/remove.

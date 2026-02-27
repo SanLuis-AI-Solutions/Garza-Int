@@ -1,11 +1,11 @@
 import React, { Suspense, useEffect, useState } from 'react';
-import { Download, FileText, LayoutDashboard, PenTool, Table, Image as ImageIcon, Globe, LogOut, UserCheck, Bug, FlaskConical } from 'lucide-react';
+import { Download, FileText, LayoutDashboard, PenTool, Table, Image as ImageIcon, Globe, LogOut, UserCheck, FlaskConical } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { AppTab } from './types';
 import AiNotConfigured from './components/AiNotConfigured';
 import { supabase } from './services/supabaseClient';
 import { hasGeminiKey } from './services/geminiKey';
-import { downloadProjectReportZip, printProjectReport } from './services/reportExport';
+import { downloadProjectReportWorkbook, printProjectReport } from './services/reportExport';
 import { ProjectProvider, useProjects } from './contexts/ProjectContext';
 import DashboardRouter from './components/dashboards/DashboardRouter';
 import InputsRouter from './components/inputs/InputsRouter';
@@ -36,7 +36,6 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session, access }) => {
   const [pendingApprovals, setPendingApprovals] = useState<number | null>(null);
   const isAdmin = (session.user.email ?? '').toLowerCase() === ADMIN_EMAIL.toLowerCase();
   const enableVisualizer = (import.meta as any).env?.VITE_ENABLE_VISUALIZER === 'true';
-  const supportEmail = (import.meta.env.VITE_SUPPORT_EMAIL as string | undefined) ?? ADMIN_EMAIL;
   const versionLabel = `v${appVersion()}`;
   const envLabel = appEnv();
 
@@ -194,7 +193,7 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session, access }) => {
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
       {/* Sidebar Navigation */}
-      <aside className="w-full md:w-[280px] gi-sidebar text-white flex-shrink-0">
+      <aside className="w-full md:w-[280px] gi-sidebar text-white flex-shrink-0 gi-print-hide">
         <div className="p-6 border-b border-white/10">
           <img
             src="/garza-logo.png"
@@ -243,7 +242,7 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session, access }) => {
 
       {/* Main Content */}
       <main className="flex-1 h-screen overflow-y-auto">
-        <header className="gi-topbar px-6 md:px-8 py-5 flex justify-between items-center sticky top-0 z-10">
+        <header className="gi-topbar px-6 md:px-8 py-5 flex justify-between items-center sticky top-0 z-10 gi-print-hide">
           <div className="flex items-center gap-3">
             <div className="hidden sm:inline-flex items-center justify-center rounded-xl bg-white/5 border border-white/10 px-3 py-2">
               <img
@@ -286,13 +285,13 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session, access }) => {
                 if (!activeProject || !results) return;
                 setExporting(true);
                 try {
-                  await downloadProjectReportZip({ project: activeProject, results });
+                  await downloadProjectReportWorkbook({ project: activeProject, results });
                 } finally {
                   setExporting(false);
                 }
               }}
               className="gi-btn gi-btn-secondary px-3 py-2 text-sm font-semibold disabled:opacity-60"
-              title="Download a ZIP with CSV + JSON report files"
+              title="Download one Excel workbook (.xlsx) with multiple report sheets"
             >
               <span className="inline-flex items-center gap-2">
                 <Download size={16} />
@@ -312,38 +311,6 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session, access }) => {
               <span className="inline-flex items-center gap-2">
                 <FileText size={16} />
                 PDF
-              </span>
-            </button>
-            <button
-              type="button"
-              disabled={!activeProject || !results || exporting}
-              onClick={async () => {
-                if (!activeProject || !results) return;
-                setExporting(true);
-                try {
-                  await downloadProjectReportZip({ project: activeProject, results });
-                } finally {
-                  setExporting(false);
-                }
-                const subj = encodeURIComponent(`Garza ROI Issue: ${activeProject.name}`);
-                const body = encodeURIComponent(
-                  [
-                    'Please describe what happened and attach the downloaded report ZIP.',
-                    '',
-                    `App: ${versionLabel} (${envLabel})`,
-                    `Project: ${activeProject.name} (${activeProject.strategy})`,
-                    `URL: ${window.location.href}`,
-                    `When: ${new Date().toISOString()}`,
-                  ].join('\n')
-                );
-                window.open(`mailto:${supportEmail}?subject=${subj}&body=${body}`, '_blank', 'noopener,noreferrer');
-              }}
-              className="gi-btn gi-btn-secondary px-3 py-2 text-sm font-semibold disabled:opacity-60"
-              title="Downloads a report ZIP and opens an email to support"
-            >
-              <span className="inline-flex items-center gap-2">
-                <Bug size={16} />
-                Report a problem
               </span>
             </button>
             </div>

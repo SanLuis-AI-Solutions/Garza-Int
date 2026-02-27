@@ -395,6 +395,46 @@ body::before {
   backdrop-filter: blur(10px);
 }
 
+@media print {
+  html,
+  body,
+  #root {
+    background: #ffffff !important;
+    color: #111111 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .gi-print-hide {
+    display: none !important;
+  }
+
+  .min-h-screen {
+    min-height: auto !important;
+  }
+
+  main {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .gi-card,
+  .gi-card-flat {
+    background: #ffffff !important;
+    border: 1px solid #d6d6d6 !important;
+    box-shadow: none !important;
+  }
+
+  .gi-muted {
+    color: #444444 !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .gi-btn,
   .gi-choice,
