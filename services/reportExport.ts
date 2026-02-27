@@ -4,6 +4,7 @@ import { appEnv, appVersion } from './appMeta';
 
 type RowValue = string | number | boolean;
 type SheetRows = RowValue[][];
+type ReportSection = { name: string; rows: SheetRows };
 
 const fmtMoney = (v: number) => Number(v).toFixed(2);
 
@@ -212,38 +213,58 @@ const buildLandlordSheets = (results: StrategyResults) => {
 
 const buildKpiCsv = (results: StrategyResults) => toCsv(buildKpiRows(results));
 
+const buildReportSections = (project: Project, results: StrategyResults): ReportSection[] => {
+  const sections: ReportSection[] = [
+    { name: 'Meta', rows: buildMetaRows(project) },
+    { name: 'KPIs', rows: buildKpiRows(results) },
+    { name: 'Inputs', rows: buildInputsRows(project) },
+  ];
+
+  if (results.strategy === 'DEVELOPER') {
+    const d = buildDeveloperSheets(results);
+    sections.push({ name: 'Milestones_1_5_10_30', rows: d.milestones });
+    sections.push({ name: 'Cost_Lines', rows: d.costLines });
+  } else if (results.strategy === 'LANDLORD') {
+    const l = buildLandlordSheets(results);
+    sections.push({ name: 'Milestones_1_5_10_30', rows: l.milestones });
+    sections.push({ name: 'Cashflow_30Y', rows: l.cashflow });
+    sections.push({ name: 'Opex_Lines', rows: l.opexLines });
+  } else if (results.strategy === 'FLIPPER') {
+    const f = buildFlipperSheets(results);
+    sections.push({ name: 'Milestones_1_5_10_30', rows: f.milestones });
+    sections.push({ name: 'Cost_Lines', rows: f.costLines });
+  }
+
+  return sections;
+};
+
 export const printProjectReport = (_args: { project: Project; results: StrategyResults }) => {
   window.print();
+};
+
+export const downloadProjectReportCsv = (args: { project: Project; results: StrategyResults }) => {
+  const { project, results } = args;
+  const slug = safeSlug(project.name);
+  const base = `${slug || 'project'}_${project.strategy.toLowerCase()}_${new Date().toISOString().slice(0, 10)}`;
+  const sections = buildReportSections(project, results);
+
+  const csv = sections
+    .map((section) => toCsv([['Section', section.name], ...section.rows]))
+    .join('\n\n');
+
+  downloadText({ filename: `${base}.csv`, content: csv, mime: 'text/csv;charset=utf-8' });
 };
 
 export const downloadProjectReportWorkbook = async (args: { project: Project; results: StrategyResults }) => {
   const { project, results } = args;
   const slug = safeSlug(project.name);
   const base = `${slug || 'project'}_${project.strategy.toLowerCase()}_${new Date().toISOString().slice(0, 10)}`;
+  const sections = buildReportSections(project, results);
 
   const XLSX = await import('xlsx');
   const workbook = XLSX.utils.book_new();
-  const addSheet = (name: string, rows: SheetRows) => {
-    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(rows), name.slice(0, 31));
-  };
-
-  addSheet('Meta', buildMetaRows(project));
-  addSheet('KPIs', buildKpiRows(results));
-  addSheet('Inputs', buildInputsRows(project));
-
-  if (results.strategy === 'DEVELOPER') {
-    const d = buildDeveloperSheets(results);
-    addSheet('Milestones_1_5_10_30', d.milestones);
-    addSheet('Cost_Lines', d.costLines);
-  } else if (results.strategy === 'LANDLORD') {
-    const l = buildLandlordSheets(results);
-    addSheet('Milestones_1_5_10_30', l.milestones);
-    addSheet('Cashflow_30Y', l.cashflow);
-    addSheet('Opex_Lines', l.opexLines);
-  } else if (results.strategy === 'FLIPPER') {
-    const f = buildFlipperSheets(results);
-    addSheet('Milestones_1_5_10_30', f.milestones);
-    addSheet('Cost_Lines', f.costLines);
+  for (const section of sections) {
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(section.rows), section.name.slice(0, 31));
   }
 
   XLSX.writeFile(workbook, `${base}.xlsx`, { compression: true });

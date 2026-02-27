@@ -18,6 +18,17 @@ Tracks notable changes to the Garza ROI app so new sessions can orient quickly.
     - `approved_emails.approved = true`, `approved_at = 2026-02-27 15:43:42+00`.
     - `user_entitlements` for `DEVELOPER/LANDLORD/FLIPPER` all active with `expires_at = 2026-03-13 15:43:42+00`.
 
+## 2026-02-27 (Follow-up)
+- Agent: **Codex (GPT-5)**.
+- Why: client reported print previews were still effectively blank on Detail/Dashboard due to white/light text rendering on white print backgrounds; requested export options update and button label clarity.
+- What:
+  - Hardened print CSS contrast rules to force readable text in print preview/PDF output, including KPI gradient text fallback.
+  - Kept native browser print flow and renamed header button from **PDF** to **Print**.
+  - Updated **Export Report** to a format picker with **CSV** (single consolidated file) or **PDF** (native print/save-as-PDF flow).
+- Verification:
+  - `npm run test` (10 tests passed).
+  - `npm run build` (Vite production build passed).
+
 ## 2026-02-06
 - Security: enforced approval + MFA at the database layer (RLS) via `docs/security.sql`.
 - Security: approvals mutations moved to a Supabase Edge Function (`supabase/functions/admin-approvals`) so only admin+AAL2 can approve/revoke/remove.

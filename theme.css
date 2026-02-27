@@ -396,6 +396,16 @@ body::before {
 }
 
 @media print {
+  :root {
+    --gi-text: #111111 !important;
+    --gi-muted: #444444 !important;
+    --gi-muted2: #5a5a5a !important;
+    --gi-surface: #ffffff !important;
+    --gi-surface2: #ffffff !important;
+    --gi-border: #d6d6d6 !important;
+    --gi-border2: #c7c7c7 !important;
+  }
+
   html,
   body,
   #root {
@@ -405,7 +415,17 @@ body::before {
     overflow: visible !important;
   }
 
+  body::before {
+    display: none !important;
+  }
+
   .gi-print-hide {
+    display: none !important;
+  }
+
+  .gi-btn,
+  .gi-seg,
+  .gi-iconBtn {
     display: none !important;
   }
 
@@ -429,7 +449,17 @@ body::before {
     color: #444444 !important;
   }
 
-  * {
+  .gi-kpi-value {
+    background: none !important;
+    color: #111111 !important;
+    -webkit-text-fill-color: #111111 !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    color: #111111 !important;
+    text-shadow: none !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }

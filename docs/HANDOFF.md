@@ -4,7 +4,7 @@ Use this when transitioning work between sessions or agents. Follow the "Documen
 
 ## Status
 - Current focus: Stabilize and harden Garza ROI Dashboard (security + correctness + ops UX).
-- Last completed (2026-02-27, Agent: Codex/GPT-5): Reliability hotfix release for approvals auth handling, report controls, print/PDF behavior, and multi-sheet `.xlsx` export; executed one-time production renewal for `jose@garzaintl.com` (+14 days, now expiring 2026-03-13 UTC).
+- Last completed (2026-02-27, Agent: Codex/GPT-5): Follow-up print/export patch to fix blank/low-contrast print previews, rename `PDF` button to `Print`, and add `Export Report` format options (CSV or PDF/print flow).
 
 ## Key Files
 - Security (DB/RLS): `docs/security.sql`
