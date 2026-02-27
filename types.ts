@@ -1,3 +1,5 @@
+import type { InvestmentStrategy } from './domain/strategies/types';
+
 export interface ExpenseItem {
   id: string;
   name: string;
@@ -63,8 +65,21 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
+export type AccessEntitlement = {
+  strategy: InvestmentStrategy;
+  active: boolean;
+  expiresAt: string | null;
+};
+
+export type AccessInfo = {
+  allowedStrategies: InvestmentStrategy[];
+  trialEndsAt: string | null;
+  entitlements: AccessEntitlement[];
+};
+
 export enum AppTab {
   DASHBOARD = 'dashboard',
+  ACCESS = 'access',
   INPUTS = 'inputs',
   SPREADSHEET = 'spreadsheet',
   VISUALIZER = 'visualizer',

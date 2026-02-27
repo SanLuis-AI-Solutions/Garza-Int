@@ -161,6 +161,22 @@ as $$
   );
 $$;
 
+-- 2d) Admin approvals audit trail (ops traceability)
+create table if not exists public.admin_approval_audit (
+  id bigint generated always as identity primary key,
+  created_at timestamptz not null default now(),
+  admin_email text not null,
+  action text not null check (action in ('approve', 'revoke', 'remove', 'renew', 'mfa_bypass_grant', 'mfa_bypass_revoke')),
+  target_emails text[] not null default '{}',
+  days int null,
+  status text not null check (status in ('success', 'error')),
+  detail jsonb not null default '{}'::jsonb
+);
+
+create index if not exists admin_approval_audit_created_at_idx on public.admin_approval_audit (created_at desc);
+create index if not exists admin_approval_audit_admin_email_idx on public.admin_approval_audit (admin_email);
+alter table public.admin_approval_audit enable row level security;
+
 -- Reset policies (drop all existing policies on both tables to avoid bypass)
 do $$
 declare r record;
@@ -186,6 +202,15 @@ begin
   for r in select policyname from pg_policies where schemaname = 'public' and tablename = 'mfa_exemptions'
   loop
     execute format('drop policy if exists %I on public.mfa_exemptions', r.policyname);
+  end loop;
+end $$;
+
+do $$
+declare r record;
+begin
+  for r in select policyname from pg_policies where schemaname = 'public' and tablename = 'admin_approval_audit'
+  loop
+    execute format('drop policy if exists %I on public.admin_approval_audit', r.policyname);
   end loop;
 end $$;
 
@@ -335,6 +360,29 @@ on public.mfa_exemptions
 for delete
 to authenticated
 using (
+  private.is_admin()
+  and private.is_aal2()
+);
+
+-- admin_approval_audit policies:
+-- - Admin can read all rows.
+-- - Non-admin users can only read their own rows (if any).
+-- - Admin can insert rows with AAL2.
+
+create policy admin_approval_audit_select_self_or_admin
+on public.admin_approval_audit
+for select
+to authenticated
+using (
+  private.is_admin()
+  or lower(admin_email) = private.auth_email()
+);
+
+create policy admin_approval_audit_insert_admin
+on public.admin_approval_audit
+for insert
+to authenticated
+with check (
   private.is_admin()
   and private.is_aal2()
 );

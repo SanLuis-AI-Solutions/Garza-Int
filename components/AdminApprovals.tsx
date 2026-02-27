@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
+import { logUiError, logUiEvent } from '../services/observability';
 
 type ApprovedEmailRow = {
   email: string;
@@ -21,6 +22,16 @@ type MfaExemptionRow = {
   expires_at: string | null;
 };
 
+type ApprovalAuditRow = {
+  created_at: string;
+  admin_email: string;
+  action: string;
+  status: string;
+  target_emails: string[] | null;
+  days: number | null;
+  detail: Record<string, unknown> | null;
+};
+
 const formatDateTime = (value: string | null | undefined) => {
   if (!value) return '—';
   const d = new Date(value);
@@ -34,6 +45,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
   const [rows, setRows] = useState<ApprovedEmailRow[]>([]);
   const [entitlements, setEntitlements] = useState<Record<string, EntitlementRow[]>>({});
   const [mfaExemptions, setMfaExemptions] = useState<Record<string, MfaExemptionRow | null>>({});
+  const [auditRows, setAuditRows] = useState<ApprovalAuditRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,6 +58,36 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
   const [submitting, setSubmitting] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [reauthRequired, setReauthRequired] = useState(false);
+
+  const ensureAdminSessionReady = async () => {
+    if (!supabase) throw new Error('Supabase is not configured.');
+    const { data, error } = await supabase.auth.getSession();
+    if (error || !data.session) {
+      setReauthRequired(true);
+      throw new Error('Session not found. Sign out, sign in, and complete MFA, then retry.');
+    }
+
+    const session = data.session;
+    const email = normalizeEmail(session.user.email ?? '');
+    const expected = normalizeEmail(adminEmail);
+    if (email !== expected) {
+      throw new Error(`Admin-only action. Sign in as ${expected}.`);
+    }
+
+    const expiresAtSeconds = session.expires_at ?? 0;
+    const expiresSoon = expiresAtSeconds * 1000 - Date.now() < 90_000;
+    if (expiresSoon) {
+      setReauthRequired(true);
+      throw new Error('Session is about to expire. Sign out, sign in, and complete MFA, then retry.');
+    }
+
+    const { data: aalData, error: aalErr } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aalErr || aalData.currentLevel !== 'aal2') {
+      setReauthRequired(true);
+      throw new Error('Admin + MFA (AAL2) is required for this action. Re-authenticate and retry.');
+    }
+  };
 
   const callAdminApprovals = async (args: {
     action: 'approve' | 'revoke' | 'remove' | 'renew' | 'mfa_bypass_grant' | 'mfa_bypass_revoke';
@@ -53,6 +95,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     days?: number;
   }) => {
     if (!supabase) return;
+    await ensureAdminSessionReady();
     const { data, error: invokeErr } = await supabase.functions.invoke('admin-approvals', {
       body: { action: args.action, emails: args.emails.map(normalizeEmail), days: args.days },
     });
@@ -63,6 +106,10 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
       if (typeof bodyErr === 'string' && bodyErr.trim()) throw new Error(bodyErr);
       const bodyMsg = payload?.message;
       if (typeof bodyMsg === 'string' && bodyMsg.trim()) throw new Error(bodyMsg);
+      logUiEvent('admin_approvals_action_success', {
+        action: args.action,
+        emails_count: args.emails.length,
+      });
       return;
     }
 
@@ -77,11 +124,16 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
         : invokeErr.message || `Approvals request failed${status ? ` (${status})` : ''}.`;
 
     if (status === 401) {
+      setReauthRequired(true);
+      logUiError('admin_approvals_401', invokeErr, { action: args.action, emails_count: args.emails.length });
       throw new Error(`${baseMessage} Session may be expired. Sign out, sign back in, and complete MFA, then retry.`);
     }
     if (status === 403) {
+      setReauthRequired(true);
+      logUiError('admin_approvals_403', invokeErr, { action: args.action, emails_count: args.emails.length });
       throw new Error(`${baseMessage} Admin + MFA access is required for this action.`);
     }
+    logUiError('admin_approvals_error', invokeErr, { action: args.action, emails_count: args.emails.length });
     throw new Error(baseMessage);
   };
 
@@ -98,6 +150,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
       if (qErr) throw qErr;
       const nextRows = (data ?? []) as ApprovedEmailRow[];
       setRows(nextRows);
+      setReauthRequired(false);
 
       const emails = Array.from(new Set(nextRows.map((r) => normalizeEmail(r.email)))).filter(Boolean);
       if (emails.length) {
@@ -148,9 +201,26 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
           }
           setMfaExemptions(grouped);
         }
+
+        const { data: auditData, error: auditErr } = await supabase
+          .from('admin_approval_audit')
+          .select('created_at,admin_email,action,status,target_emails,days,detail')
+          .order('created_at', { ascending: false })
+          .limit(25);
+        if (auditErr) {
+          const msg = String((auditErr as any)?.message ?? '');
+          if (msg.includes('admin_approval_audit') && msg.includes('does not exist')) {
+            setAuditRows([]);
+          } else {
+            throw auditErr;
+          }
+        } else {
+          setAuditRows((auditData ?? []) as ApprovalAuditRow[]);
+        }
       } else {
         setEntitlements({});
         setMfaExemptions({});
+        setAuditRows([]);
       }
       setSelected({});
     } catch (err: any) {
@@ -352,6 +422,24 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
         </button>
       </div>
 
+      {reauthRequired && (
+        <div className="mt-4 gi-card border border-amber-400/35 text-amber-100 rounded-xl px-3 py-2 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+          <div className="text-sm">
+            Admin session needs re-authentication (MFA) before approval mutations can continue.
+          </div>
+          <button
+            type="button"
+            className="px-3 py-2 gi-btn gi-btn-secondary text-xs font-semibold"
+            onClick={async () => {
+              if (!supabase) return;
+              await supabase.auth.signOut();
+            }}
+          >
+            Re-authenticate
+          </button>
+        </div>
+      )}
+
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
           <div className="flex flex-col md:flex-row md:items-center gap-3">
@@ -359,6 +447,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               placeholder="Search by email…"
+              data-testid="approval-search"
               className="w-full gi-input px-3 py-2 text-sm"
             />
             <select
@@ -548,6 +637,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
                               type="button"
                               disabled={submitting}
                               onClick={() => renew([r.email])}
+                              data-testid={`renew-${r.email}`}
                               className="px-2.5 py-1.5 gi-btn gi-btn-secondary text-xs disabled:opacity-60"
                               title="Extend access window"
                             >
@@ -607,6 +697,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
                 placeholder="user@company.com"
+                data-testid="quick-add-email"
                 className="w-full gi-input px-3 py-2 text-sm"
               />
               <div className="flex items-center gap-3">
@@ -616,6 +707,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
                   min={1}
                   max={365}
                   value={renewDays}
+                  data-testid="quick-add-renew-days"
                   onChange={(e) => {
                     const n = Number.parseInt(e.target.value || '14', 10);
                     setRenewDays(Math.max(1, Math.min(365, Number.isFinite(n) ? n : 14)));
@@ -641,12 +733,54 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
                 type="button"
                 disabled={submitting || !newEmail.trim()}
                 onClick={() => upsertApproved(newEmail, true)}
+                data-testid="quick-add-approve"
                 className="w-full gi-btn gi-btn-primary disabled:opacity-60 font-semibold py-2.5 text-sm"
               >
                 Approve Email
               </button>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="mt-6 gi-card-flat p-4">
+        <h4 className="text-sm font-semibold text-white/90">Recent Admin Actions</h4>
+        <p className="mt-1 text-xs gi-muted">Latest approvals mutations recorded for traceability.</p>
+        <div className="mt-3 overflow-x-auto">
+          <table className="gi-table text-xs">
+            <thead className="gi-thead">
+              <tr>
+                <th scope="col">Time</th>
+                <th scope="col">Admin</th>
+                <th scope="col">Action</th>
+                <th scope="col">Emails</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody className="gi-tbody">
+              {auditRows.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="gi-muted">No audit entries found.</td>
+                </tr>
+              ) : (
+                auditRows.map((row) => (
+                  <tr key={`${row.created_at}-${row.action}-${row.status}`} className="gi-trHover">
+                    <td className="gi-muted">{formatDateTime(row.created_at)}</td>
+                    <td className="font-mono">{row.admin_email}</td>
+                    <td>{row.action}</td>
+                    <td className="gi-muted">
+                      {Array.isArray(row.target_emails) ? row.target_emails.join(', ') : '—'}
+                    </td>
+                    <td>
+                      <span className={`gi-pill text-xs ${row.status === 'success' ? 'gi-pill--ok' : 'gi-pill--warn'}`}>
+                        {row.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

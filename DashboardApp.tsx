@@ -1,19 +1,21 @@
 import React, { Suspense, useEffect, useRef, useState } from 'react';
-import { ChevronDown, Download, FileText, LayoutDashboard, PenTool, Table, Image as ImageIcon, Globe, LogOut, UserCheck, FlaskConical } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ChevronDown, Download, LayoutDashboard, PenTool, Table, Image as ImageIcon, Globe, LogOut, UserCheck, FlaskConical, ShieldCheck } from 'lucide-react';
 import type { Session } from '@supabase/supabase-js';
 import { AppTab } from './types';
+import type { AccessInfo } from './types';
 import AiNotConfigured from './components/AiNotConfigured';
 import { supabase } from './services/supabaseClient';
 import { hasGeminiKey } from './services/geminiKey';
 import { downloadProjectReportCsv, printProjectReport } from './services/reportExport';
+import { logUiError, logUiEvent } from './services/observability';
 import { ProjectProvider, useProjects } from './contexts/ProjectContext';
 import DashboardRouter from './components/dashboards/DashboardRouter';
 import InputsRouter from './components/inputs/InputsRouter';
 import ProjectSwitcher from './components/projects/ProjectSwitcher';
 import NewProjectModal from './components/projects/NewProjectModal';
 import ValidationBanner from './components/ValidationBanner';
+import AccessOverview from './components/AccessOverview';
 import { appEnv, appVersion } from './services/appMeta';
-import type { InvestmentStrategy } from './domain/strategies/types';
 
 const Visualizer = React.lazy(() => import('./components/Visualizer'));
 const MarketAnalysis = React.lazy(() => import('./components/MarketAnalysis'));
@@ -24,7 +26,13 @@ const CalculatorQA = React.lazy(() => import('./components/CalculatorQA'));
 
 type DashboardAppProps = {
   session: Session;
-  access: { allowedStrategies: InvestmentStrategy[]; trialEndsAt: string | null };
+  access: AccessInfo;
+};
+
+type ToastItem = {
+  id: number;
+  message: string;
+  kind: 'success' | 'error' | 'info';
 };
 
 const ADMIN_EMAIL = 'contact@sanluisai.com';
@@ -35,6 +43,7 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session, access }) => {
   const [exporting, setExporting] = useState(false);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [pendingApprovals, setPendingApprovals] = useState<number | null>(null);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
   const exportMenuRef = useRef<HTMLDivElement | null>(null);
   const isAdmin = (session.user.email ?? '').toLowerCase() === ADMIN_EMAIL.toLowerCase();
   const enableVisualizer = (import.meta as any).env?.VITE_ENABLE_VISUALIZER === 'true';
@@ -46,6 +55,7 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session, access }) => {
 
   const isValidTab = (tab: string): tab is AppTab =>
     tab === AppTab.DASHBOARD ||
+    tab === AppTab.ACCESS ||
     tab === AppTab.INPUTS ||
     tab === AppTab.SPREADSHEET ||
     tab === AppTab.MARKET ||
@@ -107,6 +117,14 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session, access }) => {
     await supabase.auth.signOut();
   };
 
+  const showToast = (message: string, kind: ToastItem['kind']) => {
+    const id = Date.now() + Math.floor(Math.random() * 1000);
+    setToasts((prev) => [...prev, { id, message, kind }]);
+    window.setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 3800);
+  };
+
   // Admin-only: show pending approval count as a quick operational cue.
   useEffect(() => {
     if (!supabase) return;
@@ -141,6 +159,7 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session, access }) => {
 
   const navItems = [
     { id: AppTab.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
+    { id: AppTab.ACCESS, label: 'Plan & Access', icon: ShieldCheck },
     { id: AppTab.INPUTS, label: 'Edit Inputs', icon: PenTool },
     { id: AppTab.SPREADSHEET, label: 'Detail', icon: Table },
     ...(enableVisualizer ? [{ id: AppTab.VISUALIZER, label: 'Visualizer (AI)', icon: ImageIcon }] : []),
@@ -170,9 +189,16 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session, access }) => {
       if (!exportMenuRef.current || !target) return;
       if (!exportMenuRef.current.contains(target)) setExportMenuOpen(false);
     };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setExportMenuOpen(false);
+    };
 
     window.addEventListener('mousedown', onPointerDown);
-    return () => window.removeEventListener('mousedown', onPointerDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('mousedown', onPointerDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
   }, [exportMenuOpen]);
 
   // Back/forward navigation should restore tab + project selection.
@@ -256,7 +282,7 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session, access }) => {
 
       {/* Main Content */}
       <main className="flex-1 h-screen overflow-y-auto">
-        <header className="gi-topbar px-6 md:px-8 py-5 flex justify-between items-center sticky top-0 z-10 gi-print-hide">
+        <header className="gi-topbar px-6 md:px-8 py-5 flex flex-col md:flex-row gap-3 md:justify-between md:items-center sticky top-0 z-10 gi-print-hide">
           <div className="flex items-center gap-3">
             <div className="hidden sm:inline-flex items-center justify-center rounded-xl bg-white/5 border border-white/10 px-3 py-2">
               <img
@@ -280,7 +306,7 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session, access }) => {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="w-full md:w-auto flex flex-col sm:flex-row sm:items-center gap-3">
             <ProjectSwitcher
               projects={projects}
               activeProject={activeProject}
@@ -291,13 +317,16 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session, access }) => {
               onNew={() => setNewProjectOpen(true)}
               onDelete={removeProject}
             />
-            <div className="hidden md:flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <div className="relative" ref={exportMenuRef}>
                 <button
                   type="button"
                   disabled={!activeProject || !results || exporting}
                   onClick={() => setExportMenuOpen((v) => !v)}
-                  className="gi-btn gi-btn-secondary px-3 py-2 text-sm font-semibold disabled:opacity-60 inline-flex items-center gap-2"
+                  data-testid="export-menu-trigger"
+                  aria-haspopup="menu"
+                  aria-expanded={exportMenuOpen}
+                  className="gi-btn gi-btn-secondary w-full sm:w-auto px-3 py-2 text-sm font-semibold disabled:opacity-60 inline-flex items-center justify-center gap-2"
                   title="Export report as CSV or PDF"
                 >
                   <Download size={16} />
@@ -306,16 +335,23 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session, access }) => {
                 </button>
 
                 {exportMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 gi-popover overflow-hidden z-30">
+                  <div role="menu" className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-56 gi-popover overflow-hidden z-30">
                     <button
                       type="button"
+                      role="menuitem"
                       disabled={!activeProject || !results || exporting}
+                      data-testid="export-csv"
                       onClick={() => {
                         if (!activeProject || !results || exporting) return;
                         setExportMenuOpen(false);
                         setExporting(true);
                         try {
                           downloadProjectReportCsv({ project: activeProject, results });
+                          logUiEvent('export_csv_success', { strategy: activeProject.strategy, tab: activeTab });
+                          showToast('CSV exported.', 'success');
+                        } catch (err: any) {
+                          logUiError('export_csv_error', err, { strategy: activeProject.strategy, tab: activeTab });
+                          showToast(err?.message ?? 'CSV export failed.', 'error');
                         } finally {
                           setExporting(false);
                         }
@@ -326,42 +362,38 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session, access }) => {
                     </button>
                     <button
                       type="button"
+                      role="menuitem"
                       disabled={!activeProject || !results}
+                      data-testid="export-pdf"
                       onClick={() => {
                         if (!activeProject || !results) return;
                         setExportMenuOpen(false);
-                        printProjectReport({
-                          project: activeProject,
-                          results,
-                          view: activeTab === AppTab.SPREADSHEET ? 'detail' : 'dashboard',
-                        });
+                        try {
+                          printProjectReport({
+                            project: activeProject,
+                            results,
+                            view: activeTab === AppTab.SPREADSHEET ? 'detail' : 'dashboard',
+                          });
+                          logUiEvent('export_pdf_print_opened', {
+                            strategy: activeProject.strategy,
+                            view: activeTab === AppTab.SPREADSHEET ? 'detail' : 'dashboard',
+                          });
+                          showToast('Print dialog opened.', 'info');
+                        } catch (err: any) {
+                          logUiError('export_pdf_print_error', err, {
+                            strategy: activeProject.strategy,
+                            view: activeTab === AppTab.SPREADSHEET ? 'detail' : 'dashboard',
+                          });
+                          showToast(err?.message ?? 'Unable to open print dialog.', 'error');
+                        }
                       }}
                       className="w-full text-left px-3 py-2.5 text-sm hover:bg-white/10 disabled:opacity-60 border-t border-white/10"
                     >
-                      Download PDF (Print)
+                      Export PDF
                     </button>
                   </div>
                 )}
               </div>
-              <button
-                type="button"
-                disabled={!activeProject || !results}
-                onClick={() => {
-                  if (!activeProject || !results) return;
-                  printProjectReport({
-                    project: activeProject,
-                    results,
-                    view: activeTab === AppTab.SPREADSHEET ? 'detail' : 'dashboard',
-                  });
-                }}
-                className="gi-btn gi-btn-ghost px-3 py-2 text-sm font-semibold disabled:opacity-60"
-                title="Print current view (or Save as PDF)"
-              >
-                <span className="inline-flex items-center gap-2">
-                  <FileText size={16} />
-                  Print
-                </span>
-              </button>
             </div>
           </div>
         </header>
@@ -410,6 +442,8 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session, access }) => {
               )}
             </>
           )}
+
+          {activeTab === AppTab.ACCESS && <AccessOverview email={session.user.email ?? ''} access={access} />}
 
           {activeTab === AppTab.QA && isAdmin && (
             <Suspense fallback={<div className="gi-muted">Loading QA…</div>}>
@@ -463,6 +497,26 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session, access }) => {
           setActiveTab(AppTab.INPUTS);
         }}
       />
+
+      <div aria-live="polite" aria-atomic="true" className="fixed right-4 bottom-4 z-[60] space-y-2 gi-print-hide">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={`min-w-[240px] max-w-[360px] gi-card-flat px-3 py-2 text-sm flex items-start gap-2 ${
+              toast.kind === 'error' ? 'border border-red-400/40' : toast.kind === 'success' ? 'border border-green-400/35' : ''
+            }`}
+          >
+            {toast.kind === 'error' ? (
+              <AlertCircle className="w-4 h-4 mt-0.5 text-red-200" />
+            ) : toast.kind === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 mt-0.5 text-green-200" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4 mt-0.5 text-sky-200" />
+            )}
+            <div className="gi-muted text-sm">{toast.message}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

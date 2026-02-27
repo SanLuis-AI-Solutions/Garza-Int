@@ -1,5 +1,7 @@
 # Local verification artifacts
 .health/
+playwright-report/
+test-results/
 
 # Dependencies / build output
 node_modules/

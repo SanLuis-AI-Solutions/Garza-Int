@@ -1,0 +1,65 @@
+name: Production Smoke
+
+on:
+  schedule:
+    - cron: "30 13 * * 1-5"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-smoke
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+      E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+      E2E_TOTP_SECRET: ${{ secrets.E2E_TOTP_SECRET }}
+      E2E_RENEW_EMAIL: ${{ secrets.E2E_RENEW_EMAIL }}
+      E2E_ALLOW_MUTATIONS: ${{ secrets.E2E_ALLOW_MUTATIONS }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Check required smoke secrets
+        id: gate
+        shell: bash
+        run: |
+          if [[ -z "${E2E_BASE_URL}" || -z "${E2E_EMAIL}" || -z "${E2E_PASSWORD}" ]]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Smoke test skipped: set E2E_BASE_URL, E2E_EMAIL, and E2E_PASSWORD repository secrets."
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install dependencies
+        if: steps.gate.outputs.run == 'true'
+        run: npm ci
+
+      - name: Install Playwright browser
+        if: steps.gate.outputs.run == 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Run smoke suite
+        if: steps.gate.outputs.run == 'true'
+        run: npm run e2e
+
+      - name: Upload Playwright report
+        if: always() && steps.gate.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+          if-no-files-found: ignore

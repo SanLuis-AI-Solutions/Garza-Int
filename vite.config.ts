@@ -14,6 +14,20 @@ export default defineConfig(({ mode }) => {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
       },
+      build: {
+        rollupOptions: {
+          output: {
+            manualChunks(id) {
+              if (!id.includes('node_modules')) return;
+              if (id.includes('@supabase/supabase-js')) return 'vendor-supabase';
+              if (id.includes('@google/genai')) return 'vendor-ai';
+              if (id.includes('recharts')) return 'vendor-charts';
+              if (id.includes('@sentry/')) return 'vendor-sentry';
+              return;
+            },
+          },
+        },
+      },
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),

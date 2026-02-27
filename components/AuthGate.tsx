@@ -2,6 +2,7 @@ import React, { useEffect, useId, useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase } from '../services/supabaseClient';
 import type { InvestmentStrategy } from '../domain/strategies/types';
+import type { AccessEntitlement, AccessInfo } from '../types';
 
 type AuthGateProps = {
   children: (args: { session: Session; access: AccessInfo }) => React.ReactNode;
@@ -18,16 +19,26 @@ type MfaExemptionRow = {
   expires_at: string | null;
 };
 
-type AccessInfo = {
-  allowedStrategies: InvestmentStrategy[];
-  trialEndsAt: string | null;
-};
-
 const parseCsv = (value: string | undefined) =>
   (value ?? '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
+
+const STRATEGY_ORDER: InvestmentStrategy[] = ['DEVELOPER', 'LANDLORD', 'FLIPPER'];
+
+const buildEntitlementView = (rows: EntitlementRow[]): AccessEntitlement[] => {
+  const byStrategy = new Map(rows.map((r) => [r.strategy, r]));
+  return STRATEGY_ORDER.map((strategy) => {
+    const row = byStrategy.get(strategy);
+    if (!row) return { strategy, active: false, expiresAt: null };
+    return {
+      strategy,
+      active: Boolean(row.active),
+      expiresAt: row.expires_at ?? null,
+    };
+  });
+};
 
 const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -237,7 +248,11 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
     try {
       // Admin always has access, even during migrations or temporary table drift.
       if (email && email === adminEmail.toLowerCase()) {
-        setAccess({ allowedStrategies: ['DEVELOPER', 'LANDLORD', 'FLIPPER'], trialEndsAt: null });
+        setAccess({
+          allowedStrategies: STRATEGY_ORDER,
+          trialEndsAt: null,
+          entitlements: STRATEGY_ORDER.map((strategy) => ({ strategy, active: true, expiresAt: null })),
+        });
         return;
       }
 
@@ -250,32 +265,37 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
       if (error) {
         const msg = String((error as any)?.message ?? '');
         if (msg.includes('user_entitlements') && msg.includes('does not exist')) {
-          setAccess({ allowedStrategies: ['DEVELOPER', 'LANDLORD', 'FLIPPER'], trialEndsAt: null });
+          setAccess({
+            allowedStrategies: STRATEGY_ORDER,
+            trialEndsAt: null,
+            entitlements: STRATEGY_ORDER.map((strategy) => ({ strategy, active: true, expiresAt: null })),
+          });
           return;
         }
         throw error;
       }
 
       const rows = (data ?? []) as EntitlementRow[];
+      const entitlementView = buildEntitlementView(rows);
       const now = Date.now();
-      const allowed = rows
+      const allowed = entitlementView
         .filter((r) => {
           if (!r.active) return false;
-          if (!r.expires_at) return true;
-          return new Date(r.expires_at).getTime() > now;
+          if (!r.expiresAt) return true;
+          return new Date(r.expiresAt).getTime() > now;
         })
         .map((r) => r.strategy);
 
       const trialEndsAt =
-        rows
-          .map((r) => r.expires_at)
+        entitlementView
+          .map((r) => r.expiresAt)
           .filter((x): x is string => Boolean(x))
           .sort()
           .at(-1) ?? null;
 
-      setAccess({ allowedStrategies: Array.from(new Set(allowed)), trialEndsAt });
+      setAccess({ allowedStrategies: Array.from(new Set(allowed)), trialEndsAt, entitlements: entitlementView });
     } catch (err: any) {
-      setAccess({ allowedStrategies: [], trialEndsAt: null });
+      setAccess({ allowedStrategies: [], trialEndsAt: null, entitlements: [] });
       setAccessError(err?.message ?? 'Access check failed');
     } finally {
       setAccessLoading(false);

@@ -2,6 +2,28 @@
 
 Tracks notable changes to the Garza ROI app so new sessions can orient quickly.
 
+## 2026-02-27 (Reliability Hardening Pack)
+- Agent: **Codex (GPT-5)**.
+- Why: execute all approved hardening suggestions in one safe rollout (access visibility, approvals observability, automated smoke coverage, and performance tuning).
+- What:
+  - Added a user-facing **Plan & Access** tab showing entitlement status and expiry per strategy.
+  - Extended auth access model to include structured entitlement rows (`allowedStrategies`, `trialEndsAt`, `entitlements`).
+  - Added approvals observability:
+    - frontend UI telemetry helper (`services/observability.ts`) and instrumentation for export/admin actions.
+    - backend structured logs + audit write path in `admin-approvals` edge function.
+    - admin UI “Recent Admin Actions” panel.
+  - Added DB schema/policy support for `public.admin_approval_audit` in `docs/security.sql`.
+  - Added export/admin test hooks (`data-testid`) and introduced Playwright smoke suite:
+    - CSV export
+    - PDF/print launch
+    - optional admin renew mutation flow (secret-gated)
+  - Added scheduled GitHub workflow: `.github/workflows/production-smoke.yml`.
+  - Added Vite manual chunk strategy for core vendor splits (`supabase`, `ai`, `charts`, `sentry`) to reduce large entry-bundle pressure.
+- Verification:
+  - `npm run test` (10 tests passed).
+  - `npm run build` (production build passed).
+  - `npm run e2e` (smoke suite executed; tests safely skipped because E2E secrets were not set in local environment).
+
 ## 2026-02-27
 - Agent: **Codex (GPT-5)**.
 - Why: customer-facing reliability fixes for approvals renewals, PDF behavior, and export format; plus urgent access renewal request for `jose@garzaintl.com`.

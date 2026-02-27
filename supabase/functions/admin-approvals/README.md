@@ -3,6 +3,7 @@
 Admin-only mutation path for `public.approved_emails`.
 
 Also maintains **strategy entitlements** in `public.user_entitlements` (trial access to all 3 strategies on approval).
+Also writes an audit row to `public.admin_approval_audit` (if table exists).
 
 ## API
 
