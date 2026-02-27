@@ -108,12 +108,15 @@ serve(async (req) => {
 
   const url = Deno.env.get('SUPABASE_URL');
   const anon = Deno.env.get('SUPABASE_ANON_KEY');
+  const serviceRole = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
   if (!url || !anon) {
-    return json(500, { error: 'Server not configured' }, cors);
+    return json(500, { error: 'Server not configured: Missing URL or Anon Key' }, cors);
   }
 
   const jwt = getBearer(req);
   if (!jwt) {
+    console.error('Auth Error: Missing bearer token');
     return json(401, { error: 'Missing bearer token' }, cors);
   }
 
@@ -121,15 +124,31 @@ serve(async (req) => {
   const emailFromJwt = normalizeEmail(String((claims?.email as string | undefined) ?? ''));
   const aal = String((claims?.aal as string | undefined) ?? 'aal1');
 
+  // Manual Auth Debugging
+  logEvent('admin_approvals_auth_check', {
+    email: emailFromJwt,
+    aal,
+    has_claims: !!claims,
+    has_service_role: !!serviceRole,
+  });
+
   if (emailFromJwt !== normalizeEmail(ADMIN_EMAIL)) {
+    console.error(`Auth Error: Admin only. Attempted by ${emailFromJwt}`);
     return json(403, { error: 'Admin only' }, cors);
   }
   if (aal !== 'aal2') {
+    console.error('Auth Error: MFA required (AAL2)');
     return json(403, { error: 'MFA required' }, cors);
   }
   const actorEmail = emailFromJwt;
 
-  const body = await req.json().catch(() => null);
+  let body;
+  try {
+    body = await req.json();
+  } catch (e) {
+    return json(400, { error: 'Invalid JSON body' }, cors);
+  }
+
   const action = String(body?.action ?? '') as Action;
   const daysRaw = body?.days;
   const days = daysRaw !== undefined ? Number.parseInt(String(daysRaw), 10) : null;
@@ -137,12 +156,6 @@ serve(async (req) => {
   const many = Array.isArray(body?.emails) ? body.emails.map((x: any) => String(x)) : [];
   const emails = [...one, ...many].map(normalizeEmail).filter((e) => e && e.includes('@'));
   const uniqEmails = Array.from(new Set(emails));
-  logEvent('admin_approvals_request', {
-    action,
-    emails_count: uniqEmails.length,
-    admin_email: actorEmail,
-    has_days: days !== null,
-  });
 
   if (!uniqEmails.length) return json(400, { error: 'Invalid email(s)' }, cors);
   if (!['approve', 'revoke', 'remove', 'renew', 'mfa_bypass_grant', 'mfa_bypass_revoke'].includes(action)) {
@@ -157,16 +170,13 @@ serve(async (req) => {
     }
   }
 
-  // Supabase reserves SUPABASE_* env vars for platform-managed values.
-  // Use a non-reserved secret name for the service role key.
-  const serviceRole = Deno.env.get('SERVICE_ROLE_KEY');
+  // Use service role if available, otherwise fallback to anon with user JWT
   const dbClient = serviceRole
     ? createClient(url, serviceRole, { auth: { persistSession: false } })
-    : // Fallback keeps RLS in play (admin + AAL2 required by policy).
-      createClient(url, anon, {
-        global: { headers: { Authorization: `Bearer ${jwt}` } },
-        auth: { persistSession: false },
-      });
+    : createClient(url, anon, {
+      global: { headers: { Authorization: `Bearer ${jwt}` } },
+      auth: { persistSession: false },
+    });
 
   const writeAudit = async (status: 'success' | 'error', detail: Record<string, unknown> = {}) => {
     try {
@@ -190,71 +200,43 @@ serve(async (req) => {
     }
   };
 
-  if (action === 'remove') {
-    const { error } = await dbClient.from('approved_emails').delete().in('email', uniqEmails);
-    if (error) {
-      await writeAudit('error', { stage: 'approved_emails_delete', error: error.message });
-      logEvent('admin_approvals_error', { action, stage: 'approved_emails_delete', error: error.message });
-      return json(500, { error: error.message }, cors);
-    }
-
-    // Best-effort cleanup. If the table hasn't been deployed yet, ignore.
-    const { error: entErr } = await dbClient.from('user_entitlements').delete().in('email', uniqEmails);
-    if (entErr && !looksLikeMissingRelation(entErr)) {
-      await writeAudit('error', { stage: 'user_entitlements_delete', error: entErr.message });
-      logEvent('admin_approvals_error', { action, stage: 'user_entitlements_delete', error: entErr.message });
-      return json(500, { error: entErr.message }, cors);
-    }
-
-    // Best-effort cleanup for MFA exemptions.
-    const { error: mfaErr } = await dbClient.from('mfa_exemptions').delete().in('email', uniqEmails);
-    if (mfaErr && !looksLikeMissingMfaRelation(mfaErr)) {
-      await writeAudit('error', { stage: 'mfa_exemptions_delete', error: mfaErr.message });
-      logEvent('admin_approvals_error', { action, stage: 'mfa_exemptions_delete', error: mfaErr.message });
-      return json(500, { error: mfaErr.message }, cors);
-    }
-    await writeAudit('success', { stage: 'remove_completed', count: uniqEmails.length });
-    logEvent('admin_approvals_success', { action, count: uniqEmails.length });
-    return json(200, { ok: true, count: uniqEmails.length }, cors);
-  }
-
-  if (action === 'approve' || action === 'revoke') {
-    const approved = action === 'approve';
-    const approvedAt = approved ? new Date().toISOString() : null;
-    const payload = uniqEmails.map((email) => ({ email, approved, approved_at: approvedAt }));
-
-    const { error } = await dbClient.from('approved_emails').upsert(payload, { onConflict: 'email' });
-    if (error) {
-      await writeAudit('error', { stage: 'approved_emails_upsert', error: error.message });
-      logEvent('admin_approvals_error', { action, stage: 'approved_emails_upsert', error: error.message });
-      return json(500, { error: error.message }, cors);
-    }
-  } else if (action === 'renew') {
-    // Renew is only valid for already-approved emails.
-    const { data: approvals, error: apprErr } = await dbClient
-      .from('approved_emails')
-      .select('email,approved')
-      .in('email', uniqEmails);
-    if (apprErr) {
-      await writeAudit('error', { stage: 'renew_precheck_select', error: apprErr.message });
-      logEvent('admin_approvals_error', { action, stage: 'renew_precheck_select', error: apprErr.message });
-      return json(500, { error: apprErr.message }, cors);
-    }
-    const approvalsArr = (approvals ?? []) as any[];
-    const missing = uniqEmails.filter((e) => !approvalsArr.some((r) => normalizeEmail(String(r.email)) === e));
-    const unapproved = approvalsArr.filter((r) => !r.approved).map((r) => normalizeEmail(String(r.email)));
-    if (missing.length || unapproved.length) {
-      await writeAudit('error', { stage: 'renew_precheck_validation', missing, unapproved });
-      logEvent('admin_approvals_error', { action, stage: 'renew_precheck_validation', missing, unapproved });
-      return json(400, { error: 'All emails must be approved before renew', missing, unapproved }, cors);
-    }
-  }
-
-  // When an email is approved, grant time-limited access to ALL 3 strategies.
-  // This is enforced server-side by RLS on `public.projects`.
-  //
-  // Also handle revoke/remove so the server stays consistent even if someone tampers with the frontend.
   try {
+    if (action === 'remove') {
+      const { error } = await dbClient.from('approved_emails').delete().in('email', uniqEmails);
+      if (error) throw new Error(`approved_emails_delete: ${error.message}`);
+
+      const { error: entErr } = await dbClient.from('user_entitlements').delete().in('email', uniqEmails);
+      if (entErr && !looksLikeMissingRelation(entErr)) throw new Error(`user_entitlements_delete: ${entErr.message}`);
+
+      const { error: mfaErr } = await dbClient.from('mfa_exemptions').delete().in('email', uniqEmails);
+      if (mfaErr && !looksLikeMissingMfaRelation(mfaErr)) throw new Error(`mfa_exemptions_delete: ${mfaErr.message}`);
+
+      await writeAudit('success', { count: uniqEmails.length });
+      return json(200, { ok: true, count: uniqEmails.length }, cors);
+    }
+
+    if (action === 'approve' || action === 'revoke') {
+      const approved = action === 'approve';
+      const approvedAt = approved ? new Date().toISOString() : null;
+      const payload = uniqEmails.map((email) => ({ email, approved, approved_at: approvedAt }));
+
+      const { error } = await dbClient.from('approved_emails').upsert(payload, { onConflict: 'email' });
+      if (error) throw new Error(`approved_emails_upsert: ${error.message}`);
+    } else if (action === 'renew') {
+      const { data: approvals, error: apprErr } = await dbClient
+        .from('approved_emails')
+        .select('email,approved')
+        .in('email', uniqEmails);
+      if (apprErr) throw new Error(`renew_precheck_select: ${apprErr.message}`);
+
+      const approvalsArr = (approvals ?? []) as any[];
+      const missing = uniqEmails.filter((e) => !approvalsArr.some((r) => normalizeEmail(String(r.email)) === e));
+      const unapproved = approvalsArr.filter((r) => !r.approved).map((r) => normalizeEmail(String(r.email)));
+      if (missing.length || unapproved.length) {
+        return json(400, { error: 'All emails must be approved before renew', missing, unapproved }, cors);
+      }
+    }
+
     const now = new Date();
     const nowIso = now.toISOString();
 
@@ -276,14 +258,23 @@ serve(async (req) => {
       const { error: entErr } = await dbClient
         .from('user_entitlements')
         .upsert(entitlements, { onConflict: 'email,strategy' });
-      if (entErr && !looksLikeMissingRelation(entErr)) {
-        await writeAudit('error', { stage: 'entitlements_upsert_approve_or_renew', error: entErr.message });
-        logEvent('admin_approvals_error', {
-          action,
-          stage: 'entitlements_upsert_approve_or_renew',
-          error: entErr.message,
-        });
-        return json(500, { error: entErr.message }, cors);
+
+      if (entErr && !looksLikeMissingRelation(entErr)) throw new Error(`entitlements_upsert: ${entErr.message}`);
+
+      if (action === 'renew') {
+        const { error: resolveErr } = await dbClient
+          .from('access_renewal_requests')
+          .update({
+            status: 'resolved',
+            resolved_at: nowIso,
+            resolved_by: actorEmail,
+          })
+          .in('email', uniqEmails)
+          .eq('status', 'pending');
+
+        if (resolveErr) {
+          logEvent('admin_approvals_resolve_request_error', { error: resolveErr.message, emails: uniqEmails });
+        }
       }
     } else if (action === 'revoke') {
       const entitlements = uniqEmails.flatMap((email) =>
@@ -298,50 +289,28 @@ serve(async (req) => {
       const { error: entErr } = await dbClient
         .from('user_entitlements')
         .upsert(entitlements, { onConflict: 'email,strategy' });
-      if (entErr && !looksLikeMissingRelation(entErr)) {
-        await writeAudit('error', { stage: 'entitlements_upsert_revoke', error: entErr.message });
-        logEvent('admin_approvals_error', { action, stage: 'entitlements_upsert_revoke', error: entErr.message });
-        return json(500, { error: entErr.message }, cors);
-      }
+      if (entErr && !looksLikeMissingRelation(entErr)) throw new Error(`entitlements_upsert_revoke: ${entErr.message}`);
 
-      // If access is revoked, remove any MFA bypass as well (defense in depth).
       const { error: mfaErr } = await dbClient.from('mfa_exemptions').delete().in('email', uniqEmails);
-      if (mfaErr && !looksLikeMissingMfaRelation(mfaErr)) {
-        await writeAudit('error', { stage: 'mfa_exemptions_delete_revoke', error: mfaErr.message });
-        logEvent('admin_approvals_error', { action, stage: 'mfa_exemptions_delete_revoke', error: mfaErr.message });
-        return json(500, { error: mfaErr.message }, cors);
-      }
+      if (mfaErr && !looksLikeMissingMfaRelation(mfaErr)) throw new Error(`mfa_exemptions_delete_revoke: ${mfaErr.message}`);
+
     } else if (action === 'mfa_bypass_grant' || action === 'mfa_bypass_revoke') {
-      // MFA bypass is only valid for already-approved users.
       const { data: approvals, error: apprErr } = await dbClient
         .from('approved_emails')
         .select('email,approved')
         .in('email', uniqEmails);
-      if (apprErr) {
-        await writeAudit('error', { stage: 'mfa_precheck_select', error: apprErr.message });
-        logEvent('admin_approvals_error', { action, stage: 'mfa_precheck_select', error: apprErr.message });
-        return json(500, { error: apprErr.message }, cors);
-      }
+      if (apprErr) throw new Error(`mfa_precheck_select: ${apprErr.message}`);
+
       const approvalsArr = (approvals ?? []) as any[];
       const missing = uniqEmails.filter((e) => !approvalsArr.some((r) => normalizeEmail(String(r.email)) === e));
       const unapproved = approvalsArr.filter((r) => !r.approved).map((r) => normalizeEmail(String(r.email)));
       if (missing.length || unapproved.length) {
-        await writeAudit('error', { stage: 'mfa_precheck_validation', missing, unapproved });
-        logEvent('admin_approvals_error', { action, stage: 'mfa_precheck_validation', missing, unapproved });
         return json(400, { error: 'All emails must be approved before MFA bypass', missing, unapproved }, cors);
       }
 
       if (action === 'mfa_bypass_revoke') {
         const { error: mfaErr } = await dbClient.from('mfa_exemptions').delete().in('email', uniqEmails);
-        if (mfaErr && !looksLikeMissingMfaRelation(mfaErr)) {
-          await writeAudit('error', { stage: 'mfa_exemptions_delete_bypass_revoke', error: mfaErr.message });
-          logEvent('admin_approvals_error', {
-            action,
-            stage: 'mfa_exemptions_delete_bypass_revoke',
-            error: mfaErr.message,
-          });
-          return json(500, { error: mfaErr.message }, cors);
-        }
+        if (mfaErr && !looksLikeMissingMfaRelation(mfaErr)) throw new Error(`mfa_exemptions_delete_bypass_revoke: ${mfaErr.message}`);
       } else {
         const bypassDays = days ?? 7;
         const expiresAt = new Date(now.getTime() + bypassDays * 24 * 60 * 60 * 1000).toISOString();
@@ -352,25 +321,16 @@ serve(async (req) => {
           updated_at: nowIso,
         }));
         const { error: mfaErr } = await dbClient.from('mfa_exemptions').upsert(payload, { onConflict: 'email' });
-        if (mfaErr && !looksLikeMissingMfaRelation(mfaErr)) {
-          await writeAudit('error', { stage: 'mfa_exemptions_upsert_bypass_grant', error: mfaErr.message });
-          logEvent('admin_approvals_error', {
-            action,
-            stage: 'mfa_exemptions_upsert_bypass_grant',
-            error: mfaErr.message,
-          });
-          return json(500, { error: mfaErr.message }, cors);
-        }
+        if (mfaErr && !looksLikeMissingMfaRelation(mfaErr)) throw new Error(`mfa_exemptions_upsert_bypass_grant: ${mfaErr.message}`);
       }
     }
+
+    await writeAudit('success', { count: uniqEmails.length });
+    return json(200, { ok: true, count: uniqEmails.length }, cors);
+
   } catch (e: any) {
-    await writeAudit('error', { stage: 'exception', error: e?.message ?? 'Entitlement update failed' });
-    logEvent('admin_approvals_error', { action, stage: 'exception', error: e?.message ?? 'Entitlement update failed' });
-    if (!looksLikeMissingRelation(e) && !looksLikeMissingMfaRelation(e)) {
-      return json(500, { error: e?.message ?? 'Entitlement update failed' }, cors);
-    }
+    console.error(`Runtime Error: ${e.message}`);
+    await writeAudit('error', { stage: 'runtime_exception', error: e.message });
+    return json(500, { error: e.message }, cors);
   }
-  await writeAudit('success', { stage: 'completed', count: uniqEmails.length });
-  logEvent('admin_approvals_success', { action, count: uniqEmails.length });
-  return json(200, { ok: true, count: uniqEmails.length }, cors);
 });

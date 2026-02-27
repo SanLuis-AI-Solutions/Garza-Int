@@ -4,7 +4,7 @@ Use this when transitioning work between sessions or agents. Follow the "Documen
 
 ## Status
 - Current focus: Stabilize and harden Garza ROI Dashboard (security + correctness + ops UX).
-- Last completed (2026-02-27, Agent: Codex/GPT-5): Hotfix released as **1.1.3** fixing no-op renew actions (`Renew +14d`) by stabilizing edge auth/invoke flow, adding exact-expiry admin confirmations, bulk renewal-request processing, and renewal request email notification hook.
+- Last completed (2026-02-27, Agent: Codex/GPT-5): Hotfix closure released as **1.1.4** with production-verified renew recovery (`admin-approvals` v9 returning 200), resolved renewal queue flow, and synchronized version/docs/tag readiness.
 
 ## Key Files
 - Security (DB/RLS): `docs/security.sql`

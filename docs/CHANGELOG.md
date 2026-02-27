@@ -2,6 +2,22 @@
 
 Tracks notable changes to the Garza ROI app so new sessions can orient quickly.
 
+## 2026-02-27 (Hotfix Closure: Renew Button Production Recovery)
+- Agent: **Codex (GPT-5)**.
+- Version: **1.1.4**.
+- Why: close out the `Renew (+14d)` incident with verified production behavior and synced release metadata.
+- What:
+  - Included latest renew-path hardening updates from the active working tree:
+    - tighter approvals response handling on UI side
+    - edge function runtime/auth diagnostics and renewal-request auto-resolution in `admin-approvals`
+  - Confirmed live edge deployment is now `admin-approvals` **version 9**.
+  - Bumped app version to `1.1.4` and updated handoff docs.
+- Verification:
+  - `user_entitlements` for `danielsanluis03@gmail.com` now active through `2026-03-13 19:41:54.654+00` for `DEVELOPER/LANDLORD/FLIPPER`.
+  - `access_renewal_requests` for `danielsanluis03@gmail.com` is `resolved` at `2026-02-27 19:41:54.654+00` by `contact@sanluisai.com`.
+  - `admin_approval_audit` contains latest successful `renew` row at `2026-02-27 19:41:54.832289+00`.
+  - Supabase edge logs show `POST 200` for `admin-approvals` on function version `9`.
+
 ## 2026-02-27 (Hotfix: Renew Action Reliability + Admin Renewal Ops)
 - Agent: **Codex (GPT-5)**.
 - Version: **1.1.3**.

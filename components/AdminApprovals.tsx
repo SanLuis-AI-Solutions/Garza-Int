@@ -163,9 +163,20 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
 
     if (!invokeErr) {
       const bodyErr = payload?.error ?? contextPayload?.error;
-      if (typeof bodyErr === 'string' && bodyErr.trim()) throw new Error(bodyErr);
       const bodyMsg = payload?.message ?? contextPayload?.message;
-      if (typeof bodyMsg === 'string' && bodyMsg.trim()) throw new Error(bodyMsg);
+
+      // If we have an application-level error despite 200 OK
+      if (typeof bodyErr === 'string' && bodyErr.trim()) {
+        throw new Error(bodyErr);
+      }
+
+      // Some functions might send 'message' as an error indicator if it's not a success message
+      // But in this project, 'message' usually means success if error is absent.
+      // However, let's check if the status is actually success.
+      if (payload?.ok === false || contextPayload?.ok === false) {
+        throw new Error(bodyMsg || bodyErr || "Action failed without specific error message");
+      }
+
       setReauthRequired(false);
       logUiEvent('admin_approvals_action_success', {
         action: args.action,
@@ -509,8 +520,8 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
         action === 'approve'
           ? await buildApproveResultMessage(selectedEmails)
           : action === 'revoke'
-          ? `Revoked ${selectedEmails.length} email(s).`
-          : `Removed ${selectedEmails.length} email(s).`;
+            ? `Revoked ${selectedEmails.length} email(s).`
+            : `Removed ${selectedEmails.length} email(s).`;
       setActionMessage(message);
       showToast(message, 'success');
       await refresh();
@@ -534,6 +545,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
       const msg = await buildRenewResultMessage(emails, renewDays);
       setActionMessage(msg);
       showToast(msg, 'success');
+      // refresh() is sufficient to update the UI via React state, avoiding full page reload
       await refresh();
     } catch (err: any) {
       setError(err?.message ?? 'Renew failed');
@@ -888,101 +900,101 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
                     const mfa = mfaBypassSummary(r.email);
                     return (
                       <tr key={r.email} className="gi-trHover">
-                      <td>
-                        <input
-                          type="checkbox"
-                          aria-label={`Select ${r.email}`}
-                          checked={Boolean(selected[r.email])}
-                          onChange={(e) => setSelected((prev) => ({ ...prev, [r.email]: e.target.checked }))}
-                        />
-                      </td>
-                      <td className="font-mono text-white/90">{r.email}</td>
-                      <td>
-                        <span
-                          className={`gi-pill text-xs ${r.approved ? 'gi-pill--ok' : 'gi-pill--warn'}`}
-                        >
-                          {r.approved ? 'Approved' : 'Pending'}
-                        </span>
-                      </td>
-                      <td className="gi-muted">
-                        {access.unlimited
-                          ? 'Unlimited'
-                          : access.active.length === 0
-                          ? 'Expired / None'
-                          : `Active until ${formatDateTime(access.maxExpiry)}`}
-                        {mfa.active && (
-                          <div className="mt-1 text-[11px] text-white/60">
-                            MFA bypass until {formatDateTime(mfa.expiresAt)}
-                          </div>
-                        )}
-                      </td>
-                      <td className="gi-muted">{formatDateTime(r.created_at)}</td>
-                      <td className="gi-muted">{formatDateTime(r.approved_at)}</td>
-                      <td>
-                        <div className="flex flex-wrap gap-2">
-                          {r.approved ? (
-                            <button
-                              type="button"
-                              disabled={submitting}
-                              onClick={() => upsertApproved(r.email, false)}
-                              className="px-2.5 py-1.5 gi-btn gi-btn-secondary text-xs disabled:opacity-60"
-                            >
-                              Revoke
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled={submitting}
-                              onClick={() => upsertApproved(r.email, true)}
-                              className="px-2.5 py-1.5 gi-btn gi-btn-primary text-xs disabled:opacity-60"
-                            >
-                              Approve
-                            </button>
-                          )}
-                          {r.approved && (
-                            <button
-                              type="button"
-                              disabled={submitting}
-                              onClick={() => renew([r.email])}
-                              data-testid={`renew-${r.email}`}
-                              className="px-2.5 py-1.5 gi-btn gi-btn-secondary text-xs disabled:opacity-60"
-                              title="Extend access window"
-                            >
-                              Renew (+{renewDays}d)
-                            </button>
-                          )}
-                          {r.approved && !mfa.active && (
-                            <button
-                              type="button"
-                              disabled={submitting}
-                              onClick={() => grantMfaBypass([r.email])}
-                              className="px-2.5 py-1.5 gi-btn gi-btn-secondary text-xs disabled:opacity-60"
-                              title="Temporary bypass for users who cannot set up MFA"
-                            >
-                              MFA Bypass (+{mfaBypassDays}d)
-                            </button>
-                          )}
-                          {r.approved && mfa.active && (
-                            <button
-                              type="button"
-                              disabled={submitting}
-                              onClick={() => revokeMfaBypass([r.email])}
-                              className="px-2.5 py-1.5 gi-btn gi-btn-ghost text-xs disabled:opacity-60"
-                              title="Remove the temporary MFA bypass"
-                            >
-                              Revoke MFA Bypass
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            disabled={submitting}
-                            onClick={() => remove(r.email)}
-                            className="px-2.5 py-1.5 gi-btn gi-btn-danger text-xs disabled:opacity-60"
+                        <td>
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${r.email}`}
+                            checked={Boolean(selected[r.email])}
+                            onChange={(e) => setSelected((prev) => ({ ...prev, [r.email]: e.target.checked }))}
+                          />
+                        </td>
+                        <td className="font-mono text-white/90">{r.email}</td>
+                        <td>
+                          <span
+                            className={`gi-pill text-xs ${r.approved ? 'gi-pill--ok' : 'gi-pill--warn'}`}
                           >
-                            Remove
-                          </button>
-                        </div>
-                      </td>
+                            {r.approved ? 'Approved' : 'Pending'}
+                          </span>
+                        </td>
+                        <td className="gi-muted">
+                          {access.unlimited
+                            ? 'Unlimited'
+                            : access.active.length === 0
+                              ? 'Expired / None'
+                              : `Active until ${formatDateTime(access.maxExpiry)}`}
+                          {mfa.active && (
+                            <div className="mt-1 text-[11px] text-white/60">
+                              MFA bypass until {formatDateTime(mfa.expiresAt)}
+                            </div>
+                          )}
+                        </td>
+                        <td className="gi-muted">{formatDateTime(r.created_at)}</td>
+                        <td className="gi-muted">{formatDateTime(r.approved_at)}</td>
+                        <td>
+                          <div className="flex flex-wrap gap-2">
+                            {r.approved ? (
+                              <button
+                                type="button"
+                                disabled={submitting}
+                                onClick={() => upsertApproved(r.email, false)}
+                                className="px-2.5 py-1.5 gi-btn gi-btn-secondary text-xs disabled:opacity-60"
+                              >
+                                Revoke
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={submitting}
+                                onClick={() => upsertApproved(r.email, true)}
+                                className="px-2.5 py-1.5 gi-btn gi-btn-primary text-xs disabled:opacity-60"
+                              >
+                                Approve
+                              </button>
+                            )}
+                            {r.approved && (
+                              <button
+                                type="button"
+                                disabled={submitting}
+                                onClick={() => renew([r.email])}
+                                data-testid={`renew-${r.email}`}
+                                className="px-2.5 py-1.5 gi-btn gi-btn-secondary text-xs disabled:opacity-60"
+                                title="Extend access window"
+                              >
+                                Renew (+{renewDays}d)
+                              </button>
+                            )}
+                            {r.approved && !mfa.active && (
+                              <button
+                                type="button"
+                                disabled={submitting}
+                                onClick={() => grantMfaBypass([r.email])}
+                                className="px-2.5 py-1.5 gi-btn gi-btn-secondary text-xs disabled:opacity-60"
+                                title="Temporary bypass for users who cannot set up MFA"
+                              >
+                                MFA Bypass (+{mfaBypassDays}d)
+                              </button>
+                            )}
+                            {r.approved && mfa.active && (
+                              <button
+                                type="button"
+                                disabled={submitting}
+                                onClick={() => revokeMfaBypass([r.email])}
+                                className="px-2.5 py-1.5 gi-btn gi-btn-ghost text-xs disabled:opacity-60"
+                                title="Remove the temporary MFA bypass"
+                              >
+                                Revoke MFA Bypass
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              disabled={submitting}
+                              onClick={() => remove(r.email)}
+                              className="px-2.5 py-1.5 gi-btn gi-btn-danger text-xs disabled:opacity-60"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     );
                   })
@@ -1100,9 +1112,8 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`min-w-[240px] max-w-[380px] gi-card-flat px-3 py-2 text-sm ${
-              toast.kind === 'error' ? 'border border-red-400/40' : toast.kind === 'success' ? 'border border-green-400/35' : ''
-            }`}
+            className={`min-w-[240px] max-w-[380px] gi-card-flat px-3 py-2 text-sm ${toast.kind === 'error' ? 'border border-red-400/40' : toast.kind === 'success' ? 'border border-green-400/35' : ''
+              }`}
           >
             <div className="gi-muted text-sm">{toast.message}</div>
           </div>
