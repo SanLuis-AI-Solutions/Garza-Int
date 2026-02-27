@@ -41,6 +41,14 @@ const formatDateTime = (value: string | null | undefined) => {
 
 const normalizeEmail = (value: string) => value.trim().toLowerCase();
 
+const isMissingTableError = (err: any, table: string) => {
+  const msg = String(err?.message ?? '').toLowerCase();
+  return (
+    msg.includes(table.toLowerCase()) &&
+    (msg.includes('does not exist') || msg.includes('schema cache') || msg.includes('could not find the table'))
+  );
+};
+
 const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
   const [rows, setRows] = useState<ApprovedEmailRow[]>([]);
   const [entitlements, setEntitlements] = useState<Record<string, EntitlementRow[]>>({});
@@ -59,18 +67,24 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [reauthRequired, setReauthRequired] = useState(false);
+  const [auditAvailable, setAuditAvailable] = useState(true);
 
   const ensureAdminSessionReady = async () => {
     if (!supabase) throw new Error('Supabase is not configured.');
-    const { data, error } = await supabase.auth.getSession();
+    const expected = normalizeEmail(adminEmail);
+
+    let { data, error } = await supabase.auth.getSession();
     if (error || !data.session) {
-      setReauthRequired(true);
-      throw new Error('Session not found. Sign out, sign in, and complete MFA, then retry.');
+      const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
+      if (refreshErr || !refreshed.session) {
+        setReauthRequired(true);
+        throw new Error('Session not found. Sign out, sign in, and complete MFA, then retry.');
+      }
+      data = refreshed;
     }
 
     const session = data.session;
     const email = normalizeEmail(session.user.email ?? '');
-    const expected = normalizeEmail(adminEmail);
     if (email !== expected) {
       throw new Error(`Admin-only action. Sign in as ${expected}.`);
     }
@@ -78,14 +92,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
     const expiresAtSeconds = session.expires_at ?? 0;
     const expiresSoon = expiresAtSeconds * 1000 - Date.now() < 90_000;
     if (expiresSoon) {
-      setReauthRequired(true);
-      throw new Error('Session is about to expire. Sign out, sign in, and complete MFA, then retry.');
-    }
-
-    const { data: aalData, error: aalErr } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    if (aalErr || aalData.currentLevel !== 'aal2') {
-      setReauthRequired(true);
-      throw new Error('Admin + MFA (AAL2) is required for this action. Re-authenticate and retry.');
+      await supabase.auth.refreshSession().catch(() => null);
     }
   };
 
@@ -96,26 +103,41 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
   }) => {
     if (!supabase) return;
     await ensureAdminSessionReady();
-    const { data, error: invokeErr } = await supabase.functions.invoke('admin-approvals', {
-      body: { action: args.action, emails: args.emails.map(normalizeEmail), days: args.days },
-    });
+    const invokeApprovals = async () => {
+      const { data, error: invokeErr } = await supabase.functions.invoke('admin-approvals', {
+        body: { action: args.action, emails: args.emails.map(normalizeEmail), days: args.days },
+      });
+      const payload = (data ?? null) as Record<string, unknown> | null;
+      const context = (invokeErr as any)?.context as Response | undefined;
+      const statusFromContext = typeof context?.status === 'number' ? context.status : null;
+      const statusFromMessage = /invalid jwt/i.test(String(invokeErr?.message ?? '')) ? 401 : null;
+      const status = statusFromContext ?? statusFromMessage;
+      const contextPayload = context ? await context.clone().json().catch(() => null) : null;
+      return { payload, invokeErr, contextPayload, status };
+    };
 
-    const payload = (data ?? null) as Record<string, unknown> | null;
+    let attempt = await invokeApprovals();
+    if (attempt.invokeErr && attempt.status === 401) {
+      const { error: refreshErr } = await supabase.auth.refreshSession();
+      if (!refreshErr) {
+        attempt = await invokeApprovals();
+      }
+    }
+
+    const { payload, invokeErr, status, contextPayload } = attempt;
+
     if (!invokeErr) {
-      const bodyErr = payload?.error;
+      const bodyErr = payload?.error ?? contextPayload?.error;
       if (typeof bodyErr === 'string' && bodyErr.trim()) throw new Error(bodyErr);
-      const bodyMsg = payload?.message;
+      const bodyMsg = payload?.message ?? contextPayload?.message;
       if (typeof bodyMsg === 'string' && bodyMsg.trim()) throw new Error(bodyMsg);
+      setReauthRequired(false);
       logUiEvent('admin_approvals_action_success', {
         action: args.action,
         emails_count: args.emails.length,
       });
       return;
     }
-
-    const context = (invokeErr as any)?.context as Response | undefined;
-    const status = typeof context?.status === 'number' ? context.status : null;
-    const contextPayload = context ? await context.clone().json().catch(() => null) : null;
 
     const payloadError = contextPayload?.error ?? contextPayload?.message ?? payload?.error ?? payload?.message;
     const baseMessage =
@@ -159,8 +181,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
           .select('email,strategy,active,expires_at')
           .in('email', emails);
         if (entErr) {
-          const msg = String((entErr as any)?.message ?? '');
-          if (msg.includes('user_entitlements') && msg.includes('does not exist')) {
+          if (isMissingTableError(entErr, 'user_entitlements')) {
             setEntitlements({});
           } else {
             throw entErr;
@@ -183,8 +204,7 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
           .select('email,active,expires_at')
           .in('email', emails);
         if (mfaErr) {
-          const msg = String((mfaErr as any)?.message ?? '');
-          if (msg.includes('mfa_exemptions') && msg.includes('does not exist')) {
+          if (isMissingTableError(mfaErr, 'mfa_exemptions')) {
             setMfaExemptions({});
           } else {
             throw mfaErr;
@@ -208,13 +228,14 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
           .order('created_at', { ascending: false })
           .limit(25);
         if (auditErr) {
-          const msg = String((auditErr as any)?.message ?? '');
-          if (msg.includes('admin_approval_audit') && msg.includes('does not exist')) {
+          if (isMissingTableError(auditErr, 'admin_approval_audit')) {
+            setAuditAvailable(false);
             setAuditRows([]);
           } else {
             throw auditErr;
           }
         } else {
+          setAuditAvailable(true);
           setAuditRows((auditData ?? []) as ApprovalAuditRow[]);
         }
       } else {
@@ -746,6 +767,11 @@ const AdminApprovals: React.FC<{ adminEmail: string }> = ({ adminEmail }) => {
       <div className="mt-6 gi-card-flat p-4">
         <h4 className="text-sm font-semibold text-white/90">Recent Admin Actions</h4>
         <p className="mt-1 text-xs gi-muted">Latest approvals mutations recorded for traceability.</p>
+        {!auditAvailable && (
+          <p className="mt-2 text-xs gi-muted2">
+            Audit log table is not deployed yet in this environment.
+          </p>
+        )}
         <div className="mt-3 overflow-x-auto">
           <table className="gi-table text-xs">
             <thead className="gi-thead">

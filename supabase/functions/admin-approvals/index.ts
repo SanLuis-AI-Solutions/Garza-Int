@@ -74,8 +74,15 @@ const looksLikeMissingMfaRelation = (err: any) => {
 };
 
 const looksLikeMissingAuditRelation = (err: any) => {
-  const msg = String(err?.message ?? '');
-  return msg.includes('relation') && msg.includes('admin_approval_audit') && msg.includes('does not exist');
+  const msg = String(err?.message ?? '').toLowerCase();
+  const code = String(err?.code ?? '').toLowerCase();
+  return (
+    msg.includes('admin_approval_audit') &&
+    (msg.includes('relation') && msg.includes('does not exist') ||
+      msg.includes('schema cache') ||
+      msg.includes('could not find the table') ||
+      code === 'pgrst205')
+  );
 };
 
 const logEvent = (event: string, payload: Record<string, unknown>) => {

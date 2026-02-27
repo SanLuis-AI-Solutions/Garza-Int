@@ -2,6 +2,27 @@
 
 Tracks notable changes to the Garza ROI app so new sessions can orient quickly.
 
+## 2026-02-27 (Hotfix: Approvals + Navigation)
+- Agent: **Codex (GPT-5)**.
+- Version: **1.1.1**.
+- Why: admin renew actions were blocked by aggressive client re-auth checks, and audit-table missing errors were noisy.
+- What:
+  - Moved `Access` tab to the bottom of sidebar navigation for a more discreet position.
+  - Relaxed client preflight in Approvals:
+    - removed strict AAL2 pre-blocking on client side
+    - added session refresh and retry path on `401 Invalid JWT`
+    - only force re-auth when retry still fails
+  - Expanded optional-table detection for `admin_approval_audit` to include schema-cache errors.
+  - Added production DB table + policies for `public.admin_approval_audit`.
+  - One-time production renewal completed for `danielsanluis03@gmail.com` (+14 days).
+  - Deployed updated `admin-approvals` Edge Function.
+- Verification:
+  - `npm run test` (10 tests passed).
+  - `npm run build` (production build passed).
+  - Production SQL verification:
+    - `approved_emails`: `danielsanluis03@gmail.com` approved at `2026-02-27 17:37:36+00`.
+    - `user_entitlements`: `DEVELOPER/LANDLORD/FLIPPER` active, expires `2026-03-13 17:37:36+00`.
+
 ## 2026-02-27 (Versioning + Visibility Fix)
 - Agent: **Codex (GPT-5)**.
 - Why: latest code was pushed but version visibility remained stale; release tracking needed to be simple and reliable.

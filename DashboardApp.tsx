@@ -159,7 +159,6 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session, access }) => {
 
   const navItems = [
     { id: AppTab.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
-    { id: AppTab.ACCESS, label: 'Plan & Access', icon: ShieldCheck },
     { id: AppTab.INPUTS, label: 'Edit Inputs', icon: PenTool },
     { id: AppTab.SPREADSHEET, label: 'Detail', icon: Table },
     ...(enableVisualizer ? [{ id: AppTab.VISUALIZER, label: 'Visualizer (AI)', icon: ImageIcon }] : []),
@@ -174,6 +173,7 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session, access }) => {
           },
         ]
       : []),
+    { id: AppTab.ACCESS, label: 'Access', icon: ShieldCheck },
   ];
 
   useEffect(() => {
