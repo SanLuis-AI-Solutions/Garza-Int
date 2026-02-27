@@ -4,7 +4,7 @@ Use this when transitioning work between sessions or agents. Follow the "Documen
 
 ## Status
 - Current focus: Stabilize and harden Garza ROI Dashboard (security + correctness + ops UX).
-- Last completed (2026-02-27, Agent: Codex/GPT-5): Follow-up print/export patch to fix blank/low-contrast print previews, rename `PDF` button to `Print`, and add `Export Report` format options (CSV or PDF/print flow).
+- Last completed (2026-02-27, Agent: Codex/GPT-5): Replaced print flow with a controlled iframe-based printable document (data-driven tables + explicit print styles) to resolve persistent blank preview issues; print/export now pass current view context (`dashboard`/`detail`).
 
 ## Key Files
 - Security (DB/RLS): `docs/security.sql`

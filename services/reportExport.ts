@@ -5,6 +5,7 @@ import { appEnv, appVersion } from './appMeta';
 type RowValue = string | number | boolean;
 type SheetRows = RowValue[][];
 type ReportSection = { name: string; rows: SheetRows };
+type PrintView = 'dashboard' | 'detail';
 
 const fmtMoney = (v: number) => Number(v).toFixed(2);
 
@@ -238,8 +239,122 @@ const buildReportSections = (project: Project, results: StrategyResults): Report
   return sections;
 };
 
-export const printProjectReport = (_args: { project: Project; results: StrategyResults }) => {
-  window.print();
+const escapeHtml = (value: unknown) =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const renderSectionTable = (rows: SheetRows) => {
+  if (!rows.length) return '';
+  const [header, ...body] = rows;
+  const headerHtml = `<tr>${header.map((cell) => `<th>${escapeHtml(cell)}</th>`).join('')}</tr>`;
+  const bodyHtml = body
+    .map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`)
+    .join('');
+  return `<table>${headerHtml}${bodyHtml}</table>`;
+};
+
+const buildPrintableHtml = (args: { project: Project; results: StrategyResults; view: PrintView }) => {
+  const { project, results, view } = args;
+  const allSections = buildReportSections(project, results);
+  const dashboardSet = new Set(['Meta', 'KPIs', 'Milestones_1_5_10_30']);
+  const sections = view === 'detail' ? allSections : allSections.filter((s) => dashboardSet.has(s.name));
+
+  const sectionsHtml = sections
+    .map(
+      (section) => `
+        <section>
+          <h2>${escapeHtml(section.name.replaceAll('_', ' '))}</h2>
+          ${renderSectionTable(section.rows)}
+        </section>
+      `
+    )
+    .join('');
+
+  return `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>${escapeHtml(project.name)} - ${view === 'detail' ? 'Detail' : 'Dashboard'} Report</title>
+    <style>
+      @page { size: auto; margin: 12mm; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; color: #111; background: #fff; font: 13px/1.45 "Arial", "Helvetica", sans-serif; }
+      body { padding: 0; }
+      h1 { margin: 0 0 6px; font-size: 22px; line-height: 1.2; }
+      .meta { margin: 0 0 10px; color: #333; }
+      section { margin: 18px 0 0; page-break-inside: avoid; }
+      h2 { margin: 0 0 8px; font-size: 16px; border-bottom: 1px solid #d9d9d9; padding-bottom: 4px; }
+      table { width: 100%; border-collapse: collapse; border: 1px solid #d9d9d9; }
+      th, td { border: 1px solid #d9d9d9; padding: 6px 8px; vertical-align: top; text-align: left; color: #111; }
+      th { background: #f4f4f4; font-weight: 700; }
+      tr:nth-child(even) td { background: #fafafa; }
+    </style>
+  </head>
+  <body>
+    <h1>${escapeHtml(project.name)}</h1>
+    <p class="meta">
+      Strategy: <strong>${escapeHtml(project.strategy)}</strong>
+      | View: <strong>${view === 'detail' ? 'Detail' : 'Dashboard'}</strong>
+      | Generated: <strong>${escapeHtml(new Date().toISOString())}</strong>
+    </p>
+    ${sectionsHtml}
+  </body>
+</html>`;
+};
+
+export const printProjectReport = (args: { project: Project; results: StrategyResults; view?: PrintView }) => {
+  const { project, results, view = 'dashboard' } = args;
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  iframe.style.opacity = '0';
+  iframe.style.pointerEvents = 'none';
+  document.body.appendChild(iframe);
+
+  const cleanup = () => {
+    if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+  };
+
+  const printFromFrame = () => {
+    const win = iframe.contentWindow;
+    if (!win) {
+      cleanup();
+      window.print();
+      return;
+    }
+    const onAfterPrint = () => {
+      win.removeEventListener('afterprint', onAfterPrint);
+      cleanup();
+    };
+    win.addEventListener('afterprint', onAfterPrint);
+    setTimeout(() => {
+      win.focus();
+      win.print();
+    }, 30);
+    setTimeout(cleanup, 60_000);
+  };
+
+  const doc = iframe.contentDocument;
+  if (!doc) {
+    cleanup();
+    window.print();
+    return;
+  }
+
+  doc.open();
+  doc.write(buildPrintableHtml({ project, results, view }));
+  doc.close();
+
+  if (doc.readyState === 'complete') printFromFrame();
+  else iframe.onload = printFromFrame;
 };
 
 export const downloadProjectReportCsv = (args: { project: Project; results: StrategyResults }) => {

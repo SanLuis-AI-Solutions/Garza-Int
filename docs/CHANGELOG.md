@@ -29,6 +29,17 @@ Tracks notable changes to the Garza ROI app so new sessions can orient quickly.
   - `npm run test` (10 tests passed).
   - `npm run build` (Vite production build passed).
 
+## 2026-02-27 (Follow-up 2)
+- Agent: **Codex (GPT-5)**.
+- Why: client still observed blank/white print previews after CSS-only adjustments.
+- What:
+  - Replaced app-CSS-dependent print flow with a controlled printable document generated from live project/results data.
+  - `printProjectReport` now prints via a hidden iframe with explicit high-contrast styles and section tables, eliminating white/blank preview risk from screen theme styles.
+  - Wired print/export PDF actions to pass the active view (`dashboard` or `detail`) so printed content matches the current tab context.
+- Verification:
+  - `npm run test` (10 tests passed).
+  - `npm run build` (Vite production build passed).
+
 ## 2026-02-06
 - Security: enforced approval + MFA at the database layer (RLS) via `docs/security.sql`.
 - Security: approvals mutations moved to a Supabase Edge Function (`supabase/functions/admin-approvals`) so only admin+AAL2 can approve/revoke/remove.

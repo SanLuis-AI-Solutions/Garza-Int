@@ -330,7 +330,11 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session, access }) => {
                       onClick={() => {
                         if (!activeProject || !results) return;
                         setExportMenuOpen(false);
-                        printProjectReport({ project: activeProject, results });
+                        printProjectReport({
+                          project: activeProject,
+                          results,
+                          view: activeTab === AppTab.SPREADSHEET ? 'detail' : 'dashboard',
+                        });
                       }}
                       className="w-full text-left px-3 py-2.5 text-sm hover:bg-white/10 disabled:opacity-60 border-t border-white/10"
                     >
@@ -344,7 +348,11 @@ const DashboardShell: React.FC<DashboardAppProps> = ({ session, access }) => {
                 disabled={!activeProject || !results}
                 onClick={() => {
                   if (!activeProject || !results) return;
-                  printProjectReport({ project: activeProject, results });
+                  printProjectReport({
+                    project: activeProject,
+                    results,
+                    view: activeTab === AppTab.SPREADSHEET ? 'detail' : 'dashboard',
+                  });
                 }}
                 className="gi-btn gi-btn-ghost px-3 py-2 text-sm font-semibold disabled:opacity-60"
                 title="Print current view (or Save as PDF)"
