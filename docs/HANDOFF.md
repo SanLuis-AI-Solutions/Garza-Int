@@ -4,7 +4,7 @@ Use this when transitioning work between sessions or agents. Follow the "Documen
 
 ## Status
 - Current focus: Stabilize and harden Garza ROI Dashboard (security + correctness + ops UX).
-- Last completed (2026-03-04, Agent: Codex/GPT-5): Release prep for **1.1.6** completed with version bump + docs sync, and GitHub/Vercel parity check confirmed latest commit ingestion but failed production deployment state.
+- Last completed (2026-03-04, Agent: Codex/GPT-5): **1.1.6** released to production; version bump + docs sync committed (`3736757`) and production manually deployed to READY (`dpl_2mWhvoWcBWu989BubUh6BTUy26dF`) on `garza-int.vercel.app`.
 
 ## Key Files
 - Security (DB/RLS): `docs/security.sql`
@@ -35,8 +35,8 @@ Use this when transitioning work between sessions or agents. Follow the "Documen
   - `.agent/workflows/incident-hotfix.md`
 
 ## Next Actions
-1. Resolve Vercel production deployment failures on latest `main` commit (`83e0e5a...`) by capturing failing build/runtime logs for `dpl_CTnEqKYL5Uy3jmUpnfbqEBzXRXoG`, fixing root cause, and redeploying to `READY`.
-2. Confirm production alias (`garza-int.vercel.app` / `garzaroi.sanluisai.com`) serves commit `83e0e5a...` and displays `v1.1.6` in-app version label.
+1. Root-cause the recurring **Git-triggered** Vercel deployment failures (`state=ERROR`) for `main` even though manual CLI deploy succeeds; collect build logs for `dpl_6KtJBtkvPqP9aHxPGWJPKgvmW17U` and restore healthy Git auto-deploys.
+2. Perform a quick production smoke check that the sidebar/app chrome shows `v1.1.6` and core tabs load correctly under current access controls.
 3. Configure secrets for new canary/alert workflows:
    - `CANARY_SUPABASE_URL`
    - `CANARY_SUPABASE_SERVICE_ROLE_KEY`

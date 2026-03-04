@@ -11,9 +11,12 @@ Tracks notable changes to the Garza ROI app so new sessions can orient quickly.
   - Verified Vercel received that commit (`dpl_CTnEqKYL5Uy3jmUpnfbqEBzXRXoG`) but latest production deployment is in `ERROR` state.
   - Confirmed production alias currently serves older READY deployment on commit `3db310ca6390d22b169bfbe4336fd3f2e80a05c8`.
   - Bumped visible app version to `1.1.6` in `package.json` and synchronized `package-lock.json`.
+  - Committed/pushed release commit `373675739e4976b10ed404d311863f6dd848abf6` and executed manual production deploy via CLI.
+  - Confirmed production alias now points to READY deployment `dpl_2mWhvoWcBWu989BubUh6BTUy26dF` on commit `373675739e4976b10ed404d311863f6dd848abf6`.
 - Verification:
   - `npm run build` (Vite production build passed).
   - Vercel project/deployment metadata inspected via MCP (`list_deployments`, `get_deployment`, `get_project`).
+  - `npx vercel deploy --prod --yes` completed successfully and aliased to `garza-int.vercel.app`.
 
 ## 2026-02-27 (Reliability Gaps Closure + Incident Workflow Kit)
 - Agent: **Codex (GPT-5)**.
