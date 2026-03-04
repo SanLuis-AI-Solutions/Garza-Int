@@ -13,10 +13,13 @@ Tracks notable changes to the Garza ROI app so new sessions can orient quickly.
   - Bumped visible app version to `1.1.6` in `package.json` and synchronized `package-lock.json`.
   - Committed/pushed release commit `373675739e4976b10ed404d311863f6dd848abf6` and executed manual production deploy via CLI.
   - Confirmed production alias now points to READY deployment `dpl_2mWhvoWcBWu989BubUh6BTUy26dF` on commit `373675739e4976b10ed404d311863f6dd848abf6`.
+  - Root-caused failing Git auto-deploys: Vercel blocked commits authored by `SanLuisSolutions` on Hobby with `TEAM_ACCESS_REQUIRED` / “commit author does not have contributing access”.
+  - Verified fix path on Hobby: commit authored by `SanLuis-AI-Solutions` (`contact@sanluisai.com`) deployed via Git integration successfully (`dpl_6u2W8P2GJPwhTphr4PY4dRVqekuu`, source `git`, state `READY`).
 - Verification:
   - `npm run build` (Vite production build passed).
   - Vercel project/deployment metadata inspected via MCP (`list_deployments`, `get_deployment`, `get_project`).
   - `npx vercel deploy --prod --yes` completed successfully and aliased to `garza-int.vercel.app`.
+  - Vercel deployment API inspection (`v13`) captured explicit error message and seat block code (`TEAM_ACCESS_REQUIRED`) on failed deployment `dpl_C7KLDNRLtZ5a56ZJUN389DanZgxR`.
 
 ## 2026-02-27 (Reliability Gaps Closure + Incident Workflow Kit)
 - Agent: **Codex (GPT-5)**.

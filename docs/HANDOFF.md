@@ -4,7 +4,7 @@ Use this when transitioning work between sessions or agents. Follow the "Documen
 
 ## Status
 - Current focus: Stabilize and harden Garza ROI Dashboard (security + correctness + ops UX).
-- Last completed (2026-03-04, Agent: Codex/GPT-5): **1.1.6** released to production; version bump + docs sync committed (`3736757`) and production manually deployed to READY (`dpl_2mWhvoWcBWu989BubUh6BTUy26dF`) on `garza-int.vercel.app`.
+- Last completed (2026-03-04, Agent: Codex/GPT-5): **1.1.6** confirmed live and Git auto-deploy root cause identified/fixed for Hobby constraints; deployment `dpl_6u2W8P2GJPwhTphr4PY4dRVqekuu` reached `READY` from Git after author alignment to `SanLuis-AI-Solutions`.
 
 ## Key Files
 - Security (DB/RLS): `docs/security.sql`
@@ -35,7 +35,7 @@ Use this when transitioning work between sessions or agents. Follow the "Documen
   - `.agent/workflows/incident-hotfix.md`
 
 ## Next Actions
-1. Root-cause the recurring **Git-triggered** Vercel deployment failures (`state=ERROR`) for `main` even though manual CLI deploy succeeds; collect build logs for `dpl_6KtJBtkvPqP9aHxPGWJPKgvmW17U` and restore healthy Git auto-deploys.
+1. Keep repository commit author mapped to the Vercel project owner identity (`contact@sanluisai.com`) on this Hobby setup to avoid `TEAM_ACCESS_REQUIRED` Git deployment blocks.
 2. Perform a quick production smoke check that the sidebar/app chrome shows `v1.1.6` and core tabs load correctly under current access controls.
 3. Configure secrets for new canary/alert workflows:
    - `CANARY_SUPABASE_URL`
