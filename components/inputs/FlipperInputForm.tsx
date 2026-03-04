@@ -83,10 +83,17 @@ const FlipperInputForm: React.FC<{
         />
       </SectionCard>
 
-      <SectionCard title="Financing (Hard Money)" subtitle="Modeled as full balance interest over duration (simple).">
+      <SectionCard title="Financing (Hard Money)" subtitle="Purchase portion accrues interest from day 1; rehab portion uses average draw utilization.">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <NumberField label="Interest Rate" suffix="%" value={inputs.interest_rate} onChange={(v) => set('interest_rate', v)} />
           <NumberField label="Points" suffix="pts" value={inputs.points} onChange={(v) => set('points', v)} />
+          <NumberField
+            label="Rehab Draw Utilization"
+            suffix="%"
+            value={inputs.rehab_utilization_percent}
+            onChange={(v) => set('rehab_utilization_percent', v)}
+            help="Avg % of rehab funds drawn during the project. 50% = linear draw schedule, 100% = all funds at closing."
+          />
           <NumberField label="Draw Fee (per draw)" prefix="$" value={inputs.draw_fees} onChange={(v) => set('draw_fees', v)} />
           <NumberField label="Draw Count" value={inputs.draw_count} onChange={(v) => set('draw_count', Math.max(0, Math.round(v)))} />
         </div>

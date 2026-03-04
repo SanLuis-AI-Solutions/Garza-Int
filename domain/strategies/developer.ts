@@ -47,6 +47,9 @@ export const calculateDeveloper = (i: DeveloperInputs): DeveloperResults => {
     { label: 'Developer Spread', value: developerSpread, format: 'currency', help: 'ARV - Total Project Cost (pre-selling).' },
     { label: 'Net Profit', value: netProfit, format: 'currency', help: 'ARV - Selling Costs - Total Project Cost.' },
     { label: 'Profit Margin', value: profitMargin * 100, format: 'percent' },
+    { label: 'ROI on Total Cost', value: roiOnTotalCost * 100, format: 'percent', help: 'Net Profit / Total Project Cost.' },
+    { label: 'Annualized ROI', value: annualizedRoiOnTotalCost * 100, format: 'percent', help: 'ROI scaled to a 12-month equivalent.' },
+    { label: 'Equity Required', value: equityRequired, format: 'currency', help: 'Total Project Cost minus Construction Loan.' },
   ];
 
   const breakdown = [

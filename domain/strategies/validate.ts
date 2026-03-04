@@ -49,6 +49,7 @@ export const validateProject = (project: Project, results: StrategyResults): Val
     case 'FLIPPER': {
       const i = project.inputs as any;
       if (isFiniteNumber(i.points) && pctOutOfRange(i.points, 0, 10)) add('warn', 'Points are usually between 0% and 10%.', 'points');
+      if (isFiniteNumber(i.rehab_utilization_percent) && pctOutOfRange(i.rehab_utilization_percent)) add('warn', 'Rehab draw utilization is usually between 0% and 100%.', 'rehab_utilization_percent');
       if (results.totals.netProfit < 0) add('error', 'Net Profit is negative. This flip loses money under current assumptions.');
       if (results.totals.projectDurationMonths >= 12) add('info', 'Flip duration is 12+ months; annualized ROI will drop quickly as time increases.', 'project_duration_months');
       if (results.totals.dailyHoldingCost > 0 && results.totals.dailyHoldingCost >= 200) add('warn', 'Daily holding cost is very high. Verify interest, taxes, insurance, and utilities inputs.');

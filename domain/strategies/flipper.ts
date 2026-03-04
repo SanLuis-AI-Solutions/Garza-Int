@@ -14,7 +14,11 @@ export const calculateFlipper = (i: FlipperInputs): FlipperResults => {
   const rehabTotal = i.rehab_budget * (1 + i.flip_contingency_percent / 100);
   const loanPrincipal = i.distressed_price + i.wholesale_fee + i.arrears + rehabTotal;
 
-  const interestCost = loanPrincipal * (i.interest_rate / 100) * (months / 12);
+  const purchasePortion = i.distressed_price + i.wholesale_fee + i.arrears;
+  const rehabUtilization = ((i.rehab_utilization_percent ?? 100) / 100);
+  const interestOnPurchase = purchasePortion * (i.interest_rate / 100) * (months / 12);
+  const interestOnRehab = rehabTotal * rehabUtilization * (i.interest_rate / 100) * (months / 12);
+  const interestCost = interestOnPurchase + interestOnRehab;
   const pointsCost = percentOf(loanPrincipal, i.points);
   const drawFeesTotal = i.draw_fees * i.draw_count;
 

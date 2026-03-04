@@ -69,6 +69,7 @@ export type FlipperInputs = {
   flip_contingency_percent: number;
   interest_rate: number;
   points: number;
+  rehab_utilization_percent: number;
   draw_fees: number;
   draw_count: number;
   project_duration_months: number;

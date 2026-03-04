@@ -14,7 +14,7 @@ export const defaultDeveloperInputs = (): DeveloperInputs => ({
   months_to_build: 10,
   holding_taxes: 3000,
   builders_risk_insurance: 2500,
-  arv: 650000,
+  arv: 725000,
   selling_costs_percent: 7,
   custom: {
     acquisition_soft: [],
@@ -60,6 +60,7 @@ export const defaultFlipperInputs = (): FlipperInputs => ({
   flip_contingency_percent: 12,
   interest_rate: 12,
   points: 2,
+  rehab_utilization_percent: 50,
   draw_fees: 150,
   draw_count: 6,
   project_duration_months: 6,

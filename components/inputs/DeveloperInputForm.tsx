@@ -117,12 +117,14 @@ const DeveloperInputForm: React.FC<{
             prefix="$"
             value={inputs.holding_taxes}
             onChange={(v) => set('holding_taxes', v)}
+            help="Total holding taxes for the entire build period."
           />
           <NumberField
             label="Builder's Risk Insurance"
             prefix="$"
             value={inputs.builders_risk_insurance}
             onChange={(v) => set('builders_risk_insurance', v)}
+            help="Total builder's risk premium for the entire build period."
           />
         </div>
         <CostItemsEditor

@@ -160,7 +160,11 @@ const flipperBenchmark = (): QaScenario => {
   const months = 6;
   const rehabTotal = inputs.rehab_budget * (1 + inputs.flip_contingency_percent / 100);
   const loanPrincipal = inputs.distressed_price + inputs.wholesale_fee + inputs.arrears + rehabTotal;
-  const interestCost = loanPrincipal * (inputs.interest_rate / 100) * (months / 12);
+  const purchasePortion = inputs.distressed_price + inputs.wholesale_fee + inputs.arrears;
+  const rehabUtilization = (inputs.rehab_utilization_percent ?? 100) / 100;
+  const interestOnPurchase = purchasePortion * (inputs.interest_rate / 100) * (months / 12);
+  const interestOnRehab = rehabTotal * rehabUtilization * (inputs.interest_rate / 100) * (months / 12);
+  const interestCost = interestOnPurchase + interestOnRehab;
   const pointsCost = pct(loanPrincipal, inputs.points);
   const drawFeesTotal = inputs.draw_fees * inputs.draw_count;
   const taxesProrated = inputs.property_taxes_annual * (months / 12);
