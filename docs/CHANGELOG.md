@@ -2,6 +2,19 @@
 
 Tracks notable changes to the Garza ROI app so new sessions can orient quickly.
 
+## 2026-03-04 (Release 1.1.6: Version Bump + Vercel Sync Check)
+- Agent: **Codex (GPT-5)**.
+- Version: **1.1.6**.
+- Why: verify whether Vercel production is serving the most recent GitHub commit and bump the in-app version so the next deploy can be confirmed visually.
+- What:
+  - Verified Git state parity: local `main` and `origin/main` both at `83e0e5a60ae65141f37f57e61de4c42fe0e8f9ee`.
+  - Verified Vercel received that commit (`dpl_CTnEqKYL5Uy3jmUpnfbqEBzXRXoG`) but latest production deployment is in `ERROR` state.
+  - Confirmed production alias currently serves older READY deployment on commit `3db310ca6390d22b169bfbe4336fd3f2e80a05c8`.
+  - Bumped visible app version to `1.1.6` in `package.json` and synchronized `package-lock.json`.
+- Verification:
+  - `npm run build` (Vite production build passed).
+  - Vercel project/deployment metadata inspected via MCP (`list_deployments`, `get_deployment`, `get_project`).
+
 ## 2026-02-27 (Reliability Gaps Closure + Incident Workflow Kit)
 - Agent: **Codex (GPT-5)**.
 - Version: **1.1.5**.

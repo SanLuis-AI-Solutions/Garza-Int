@@ -4,7 +4,7 @@ Use this when transitioning work between sessions or agents. Follow the "Documen
 
 ## Status
 - Current focus: Stabilize and harden Garza ROI Dashboard (security + correctness + ops UX).
-- Last completed (2026-02-27, Agent: Codex/GPT-5): Reliability gaps closure released as **1.1.5** with renew canary verification workflow, approvals error-threshold alerting workflow, and in-app admin diagnostics panel backed by a new edge `diagnostics` action.
+- Last completed (2026-03-04, Agent: Codex/GPT-5): Release prep for **1.1.6** completed with version bump + docs sync, and GitHub/Vercel parity check confirmed latest commit ingestion but failed production deployment state.
 
 ## Key Files
 - Security (DB/RLS): `docs/security.sql`
@@ -35,13 +35,15 @@ Use this when transitioning work between sessions or agents. Follow the "Documen
   - `.agent/workflows/incident-hotfix.md`
 
 ## Next Actions
-1. Configure secrets for new canary/alert workflows:
+1. Resolve Vercel production deployment failures on latest `main` commit (`83e0e5a...`) by capturing failing build/runtime logs for `dpl_CTnEqKYL5Uy3jmUpnfbqEBzXRXoG`, fixing root cause, and redeploying to `READY`.
+2. Confirm production alias (`garza-int.vercel.app` / `garzaroi.sanluisai.com`) serves commit `83e0e5a...` and displays `v1.1.6` in-app version label.
+3. Configure secrets for new canary/alert workflows:
    - `CANARY_SUPABASE_URL`
    - `CANARY_SUPABASE_SERVICE_ROLE_KEY`
    - optional `ADMIN_APPROVALS_ALERT_WEBHOOK_URL`
-2. Set repository vars for alert thresholds (`ADMIN_APPROVALS_ALERT_WINDOW_MINUTES`, `ADMIN_APPROVALS_ALERT_MAX_TOTAL`, `ADMIN_APPROVALS_ALERT_MAX_401`, `ADMIN_APPROVALS_ALERT_MAX_500`) and run both workflows once via manual dispatch.
-3. Configure `RESEND_API_KEY` (+ optional `RENEWAL_NOTIFY_TO_EMAILS`, `RENEWAL_NOTIFY_FROM_EMAIL`) for production so renewal request emails are delivered.
-4. Add screenshot capture/upload to smoke workflow for handoff evidence after each run.
+4. Set repository vars for alert thresholds (`ADMIN_APPROVALS_ALERT_WINDOW_MINUTES`, `ADMIN_APPROVALS_ALERT_MAX_TOTAL`, `ADMIN_APPROVALS_ALERT_MAX_401`, `ADMIN_APPROVALS_ALERT_MAX_500`) and run both workflows once via manual dispatch.
+5. Configure `RESEND_API_KEY` (+ optional `RENEWAL_NOTIFY_TO_EMAILS`, `RENEWAL_NOTIFY_FROM_EMAIL`) for production so renewal request emails are delivered.
+6. Add screenshot capture/upload to smoke workflow for handoff evidence after each run.
 
 ## Postmortem and Guardrails (2026-02-27)
 - Incident: `Renew (+14d)` appeared as a UI no-op due repeated edge-function auth/runtime failures before final working function rollout.
