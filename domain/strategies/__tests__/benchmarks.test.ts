@@ -143,3 +143,34 @@ describe('Strategy benchmarks (formula checks)', () => {
   });
 });
 
+describe('Landlord opexLines display (regression: must not be $0)', () => {
+  it('Management, Maintenance, and CapEx lines are non-zero in opexLines', () => {
+    const i = defaultLandlordInputs(); // 9% mgmt, 7% maint, 6% capex, $3,200/mo rent
+    const r = calculateLandlord(i);
+
+    const grossY1 = (i.gross_monthly_rent + i.other_income) * 12;
+    const expectedMgmt = (grossY1 * i.property_management_percent) / 100;
+    const expectedMaint = (grossY1 * i.maintenance_reserve_percent) / 100;
+    const expectedCapex = (grossY1 * i.capex_reserve_percent) / 100;
+
+    const mgmtLine = r.opexLines.find((l) => l.name.startsWith('Management'));
+    const maintLine = r.opexLines.find((l) => l.name.startsWith('Maintenance'));
+    const capexLine = r.opexLines.find((l) => l.name.startsWith('CapEx'));
+
+    expect(mgmtLine).toBeDefined();
+    expect(maintLine).toBeDefined();
+    expect(capexLine).toBeDefined();
+    expect(mgmtLine!.value).toBeCloseTo(expectedMgmt, 4);
+    expect(maintLine!.value).toBeCloseTo(expectedMaint, 4);
+    expect(capexLine!.value).toBeCloseTo(expectedCapex, 4);
+  });
+
+  it('opexLines total is consistent with year-1 opex from cash flow', () => {
+    const i = defaultLandlordInputs();
+    const r = calculateLandlord(i);
+    const opexLinesSum = r.opexLines.reduce((s, l) => s + l.value, 0);
+    // opexLines is a Year-1 snapshot; year-1 opex from cashFlow should match within $1
+    expect(opexLinesSum).toBeCloseTo(r.cashFlow[0].opex, -1);
+  });
+});
+

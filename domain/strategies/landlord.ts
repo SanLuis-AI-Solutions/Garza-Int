@@ -39,13 +39,19 @@ export const calculateLandlord = (i: LandlordInputs): LandlordResults => {
     return sum;
   };
 
+  // Year-1 gross (no growth) — used for the OpEx snapshot display panel.
+  const year1GrossAnnual = (i.gross_monthly_rent + i.other_income) * 12;
+  const year1Mgmt = percentOf(year1GrossAnnual, i.property_management_percent);
+  const year1Maint = percentOf(year1GrossAnnual, i.maintenance_reserve_percent);
+  const year1Capex = percentOf(year1GrossAnnual, i.capex_reserve_percent);
+
   const opexLinesBase = [
-    { name: 'Management', value: 0 },
+    { name: 'Management (% of Gross Rent)', value: year1Mgmt },
     { name: 'Property Taxes', value: i.property_taxes_annual },
     { name: 'Insurance', value: i.landlord_insurance_annual },
     { name: 'HOA', value: i.hoa_fees_monthly * 12 },
-    { name: 'Maintenance', value: 0 },
-    { name: 'CapEx', value: 0 },
+    { name: 'Maintenance Reserve (% of Gross Rent)', value: year1Maint },
+    { name: 'CapEx Reserve (% of Gross Rent)', value: year1Capex },
     ...flattenCostItems(i.custom?.opex, 12),
   ].filter((x) => Number.isFinite(x.value) && x.value !== 0);
 
