@@ -1,16 +1,31 @@
 #!/usr/bin/env node
 
-const baseUrl = process.env.CANARY_SUPABASE_URL ?? process.env.SUPABASE_URL;
-const serviceRoleKey =
-  process.env.CANARY_SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
-const windowMinutes = Number.parseInt(process.env.ADMIN_APPROVALS_ALERT_WINDOW_MINUTES ?? '30', 10);
-const maxTotalErrors = Number.parseInt(process.env.ADMIN_APPROVALS_ALERT_MAX_TOTAL ?? '2', 10);
-const maxAuthErrors = Number.parseInt(process.env.ADMIN_APPROVALS_ALERT_MAX_401 ?? '1', 10);
-const maxServerErrors = Number.parseInt(process.env.ADMIN_APPROVALS_ALERT_MAX_500 ?? '1', 10);
+const envOrDefault = (value, fallback) => {
+  if (typeof value !== 'string') return fallback;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : fallback;
+};
+
+const parsePositiveInt = (value, fallback, label) => {
+  const parsed = Number.parseInt(envOrDefault(value, String(fallback)), 10);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    throw new Error(`Invalid ${label}.`);
+  }
+  return parsed;
+};
+
+const baseUrl = envOrDefault(process.env.CANARY_SUPABASE_URL ?? process.env.SUPABASE_URL, '');
+const serviceRoleKey = envOrDefault(
+  process.env.CANARY_SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
+  ''
+);
+const windowMinutes = parsePositiveInt(process.env.ADMIN_APPROVALS_ALERT_WINDOW_MINUTES, 30, 'alert window');
+const maxTotalErrors = parsePositiveInt(process.env.ADMIN_APPROVALS_ALERT_MAX_TOTAL, 2, 'max total errors');
+const maxAuthErrors = parsePositiveInt(process.env.ADMIN_APPROVALS_ALERT_MAX_401, 1, 'max auth errors');
+const maxServerErrors = parsePositiveInt(process.env.ADMIN_APPROVALS_ALERT_MAX_500, 1, 'max server errors');
 
 if (!baseUrl) throw new Error('Missing CANARY_SUPABASE_URL (or SUPABASE_URL).');
 if (!serviceRoleKey) throw new Error('Missing CANARY_SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_ROLE_KEY).');
-if (!Number.isFinite(windowMinutes) || windowMinutes < 1) throw new Error('Invalid alert window.');
 
 const windowStart = new Date(Date.now() - windowMinutes * 60 * 1000).toISOString();
 const headers = {
