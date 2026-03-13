@@ -35,6 +35,17 @@ Tracks notable changes to the Garza ROI app so new sessions can orient quickly.
   - `npm run build` (Vite production build passed with no Tailwind import-order warnings).
   - Local browser smoke via `vite preview` rendered the login screen correctly; remaining console noise is only a missing `favicon.ico`.
 
+## 2026-03-13 (Production Smoke Guardrail Upgrade)
+- Agent: **Codex (GPT-5)**.
+- Why: make production smoke checks catch login-shell and console regressions even when credential secrets are unavailable.
+- What:
+  - Added an unauthenticated Playwright smoke case that verifies the login shell renders and the page emits no console or page errors on initial load.
+  - Relaxed the workflow gate so `.github/workflows/production-smoke.yml` can always run against production using the canonical `https://garzaroi.sanluisai.com` fallback URL.
+  - Kept the existing credentialed export/admin smoke coverage as optional tests that skip cleanly when login secrets are absent.
+- Verification:
+  - `npm test` (33/33 passed).
+  - `npx playwright test e2e/dashboard-smoke.spec.ts --project=chromium --grep "renders login shell without console errors"` against local `vite preview` passed.
+
 ## 2026-03-04 (Release 1.1.6: Version Bump + Vercel Sync Check)
 - Agent: **Codex (GPT-5)**.
 - Version: **1.1.6**.
