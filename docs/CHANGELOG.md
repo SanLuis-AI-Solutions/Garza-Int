@@ -22,6 +22,19 @@ Tracks notable changes to the Garza ROI app so new sessions can orient quickly.
   - `npm run build` (Vite production build passed).
   - GitHub Actions `Admin Approvals Alert` run `23068540961` succeeded on `main`.
 
+## 2026-03-13 (Tailwind Runtime Removal)
+- Agent: **Codex (GPT-5)**.
+- Why: remove the production `cdn.tailwindcss.com` runtime dependency and eliminate the live browser warning from the app shell.
+- What:
+  - Added local Tailwind compilation through the official Vite plugin in `vite.config.ts`.
+  - Added Tailwind as a dev dependency in `package.json` / `package-lock.json`.
+  - Moved the font loading and spreadsheet scrollbar utility out of the inline `index.html` block into the app-owned asset pipeline.
+  - Removed the Tailwind CDN `<script>` from `index.html` so production styling is fully bundled at build time.
+- Verification:
+  - `npm test` (33/33 passed).
+  - `npm run build` (Vite production build passed with no Tailwind import-order warnings).
+  - Local browser smoke via `vite preview` rendered the login screen correctly; remaining console noise is only a missing `favicon.ico`.
+
 ## 2026-03-04 (Release 1.1.6: Version Bump + Vercel Sync Check)
 - Agent: **Codex (GPT-5)**.
 - Version: **1.1.6**.
