@@ -2,6 +2,26 @@
 
 Tracks notable changes to the Garza ROI app so new sessions can orient quickly.
 
+## 2026-03-13 (Auth Bootstrap Hardening + Actions Spend Controls)
+- Agent: **Codex (GPT-5)**.
+- Why: prevent users from getting stuck on indefinite auth/loading screens and close the remaining GitHub Actions alerting/runtime configuration gaps.
+- What:
+  - Hardened `components/AuthGate.tsx` with bounded timeouts around session restore, approval checks, MFA checks, MFA bypass lookup, and entitlement checks.
+  - Added explicit recovery states with retry/sign-out actions when approval or entitlement checks fail instead of leaving the UI on a permanent loading state.
+  - Moved MFA bypass lookup into an effect so the render path no longer triggers the check repeatedly while the session is loading.
+  - Updated GitHub workflow files for lower Actions spend and Node 24 compatibility:
+    - concurrency cancelation
+    - `workflow_dispatch`
+    - docs-only path filtering
+    - tighter job timeouts
+    - `actions/*@v6` upgrades
+  - Fixed `scripts/check-admin-approvals-error-rate.mjs` so blank repo vars fall back to safe defaults instead of failing the workflow.
+  - Confirmed required alert secrets and vars are now configured and the `Admin Approvals Alert` workflow runs successfully.
+- Verification:
+  - `npm test` (33/33 passed).
+  - `npm run build` (Vite production build passed).
+  - GitHub Actions `Admin Approvals Alert` run `23068540961` succeeded on `main`.
+
 ## 2026-03-04 (Release 1.1.6: Version Bump + Vercel Sync Check)
 - Agent: **Codex (GPT-5)**.
 - Version: **1.1.6**.

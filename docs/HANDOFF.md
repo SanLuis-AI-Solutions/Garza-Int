@@ -5,6 +5,7 @@ Use this when transitioning work between sessions or agents. Follow the "Documen
 ## Status
 - Current focus: Stabilize and harden Garza ROI Dashboard (security + correctness + ops UX).
 - Last completed (2026-03-04, Agent: Codex/GPT-5): **1.1.6** confirmed live and Git auto-deploy root cause identified/fixed for Hobby constraints; deployment `dpl_6u2W8P2GJPwhTphr4PY4dRVqekuu` reached `READY` from Git after author alignment to `SanLuis-AI-Solutions`.
+- Latest in progress (2026-03-13, Agent: Codex/GPT-5): auth bootstrap hardening in `components/AuthGate.tsx` is verified locally and ready to ship; GitHub Actions spend controls and alert workflow fixes are already on `main`.
 
 ## Key Files
 - Security (DB/RLS): `docs/security.sql`
@@ -36,12 +37,9 @@ Use this when transitioning work between sessions or agents. Follow the "Documen
 
 ## Next Actions
 1. Keep repository commit author mapped to the Vercel project owner identity (`contact@sanluisai.com`) on this Hobby setup to avoid `TEAM_ACCESS_REQUIRED` Git deployment blocks.
-2. Perform a quick production smoke check that the sidebar/app chrome shows `v1.1.6` and core tabs load correctly under current access controls.
-3. Configure secrets for new canary/alert workflows:
-   - `CANARY_SUPABASE_URL`
-   - `CANARY_SUPABASE_SERVICE_ROLE_KEY`
-   - optional `ADMIN_APPROVALS_ALERT_WEBHOOK_URL`
-4. Set repository vars for alert thresholds (`ADMIN_APPROVALS_ALERT_WINDOW_MINUTES`, `ADMIN_APPROVALS_ALERT_MAX_TOTAL`, `ADMIN_APPROVALS_ALERT_MAX_401`, `ADMIN_APPROVALS_ALERT_MAX_500`) and run both workflows once via manual dispatch.
+2. Confirm the next production deploy from Git reaches `READY` on the linked Vercel team/project and re-check that auth fallback paths no longer strand users on a loading screen.
+3. Perform a quick production smoke check that the sidebar/app chrome shows `v1.1.6` and core tabs load correctly under current access controls.
+4. Configure optional `ADMIN_APPROVALS_ALERT_WEBHOOK_URL` if Slack/Discord paging is desired for approvals alerting.
 5. Configure `RESEND_API_KEY` (+ optional `RENEWAL_NOTIFY_TO_EMAILS`, `RENEWAL_NOTIFY_FROM_EMAIL`) for production so renewal request emails are delivered.
 6. Add screenshot capture/upload to smoke workflow for handoff evidence after each run.
 

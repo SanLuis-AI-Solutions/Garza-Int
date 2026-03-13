@@ -41,6 +41,21 @@ const isMissingTableError = (err: any, table: string) => {
 };
 
 const STRATEGY_ORDER: InvestmentStrategy[] = ['DEVELOPER', 'LANDLORD', 'FLIPPER'];
+const AUTH_GATE_TIMEOUT_MS = 15_000;
+
+const withTimeout = async <T,>(promise: Promise<T>, label: string, timeoutMs = AUTH_GATE_TIMEOUT_MS): Promise<T> => {
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutHandle = setTimeout(() => reject(new Error(`${label} timed out. Please retry.`)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+  }
+};
 
 const buildEntitlementView = (rows: EntitlementRow[]): AccessEntitlement[] => {
   const byStrategy = new Map(rows.map((r) => [r.strategy, r]));
@@ -58,6 +73,7 @@ const buildEntitlementView = (rows: EntitlementRow[]): AccessEntitlement[] => {
 const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [bootstrapError, setBootstrapError] = useState<string | null>(null);
   const [approvalLoading, setApprovalLoading] = useState(false);
   const [approved, setApproved] = useState<boolean | null>(null);
   const [approvalError, setApprovalError] = useState<string | null>(null);
@@ -87,21 +103,28 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
 
     let mounted = true;
 
-    supabase.auth
-      .getSession()
-      .then(({ data }) => {
+    const restoreSession = async () => {
+      try {
+        const { data } = await withTimeout(supabase.auth.getSession(), 'Session restore');
         if (!mounted) return;
+        setBootstrapError(null);
         setSession(data.session ?? null);
-        setLoading(false);
-      })
-      .catch(() => {
+      } catch (err: any) {
         if (!mounted) return;
+        setBootstrapError(err?.message ?? 'Session restore failed. Please sign in again.');
         setSession(null);
+        void supabase.auth.signOut().catch(() => null);
+      } finally {
+        if (!mounted) return;
         setLoading(false);
-      });
+      }
+    };
+
+    void restoreSession();
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (!mounted) return;
+      setBootstrapError(null);
       setSession(nextSession);
     });
 
@@ -134,18 +157,24 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
     setApprovalError(null);
     setApprovalLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('approved_emails')
-        .select('approved')
-        .ilike('email', email)
-        .maybeSingle();
+      const { data, error } = await withTimeout(
+        supabase
+          .from('approved_emails')
+          .select('approved')
+          .ilike('email', email)
+          .maybeSingle(),
+        'Approval check'
+      );
 
       if (error) throw error;
       if (!data && email) {
         // If no request exists yet, create one so admins can approve from the dashboard.
-        const { error: insertError } = await supabase
-          .from('approved_emails')
-          .insert({ email, approved: false, approved_at: null });
+        const { error: insertError } = await withTimeout(
+          supabase
+            .from('approved_emails')
+            .insert({ email, approved: false, approved_at: null }),
+          'Approval request creation'
+        );
 
         // Ignore duplicate key errors (already requested).
         if (insertError && insertError.code !== '23505') throw insertError;
@@ -193,8 +222,10 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
     setMfaBypass(null);
     setMfaBypassError(null);
     setMfaBypassLoading(false);
-    supabase.auth.mfa
-      .getAuthenticatorAssuranceLevel()
+    withTimeout(
+      supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
+      'MFA check'
+    )
       .then(({ data, error }) => {
         if (!mounted) return;
         if (error) throw error;
@@ -223,11 +254,14 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
     setMfaBypassError(null);
     setMfaBypassLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('mfa_exemptions')
-        .select('active,expires_at')
-        .ilike('email', email)
-        .maybeSingle();
+      const { data, error } = await withTimeout(
+        supabase
+          .from('mfa_exemptions')
+          .select('active,expires_at')
+          .ilike('email', email)
+          .maybeSingle(),
+        'MFA bypass check'
+      );
 
       // If the table isn't deployed yet, treat as no bypass.
       if (error) {
@@ -255,6 +289,16 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
     }
   };
 
+  useEffect(() => {
+    if (!supabase) return;
+    if (!requireMfa) return;
+    if (!session) return;
+    if (aalLoading) return;
+    if (aal?.currentLevel === 'aal2') return;
+    if (mfaBypass !== null || mfaBypassLoading) return;
+    void checkMfaBypass(session);
+  }, [requireMfa, session?.access_token, session?.user?.email, aalLoading, aal?.currentLevel, mfaBypass, mfaBypassLoading]);
+
   const checkEntitlements = async (activeSession: Session) => {
     if (!supabase) return;
     const email = (activeSession.user.email ?? '').toLowerCase();
@@ -271,10 +315,13 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
         return;
       }
 
-      const { data, error } = await supabase
-        .from('user_entitlements')
-        .select('strategy,active,expires_at')
-        .ilike('email', email);
+      const { data, error } = await withTimeout(
+        supabase
+          .from('user_entitlements')
+          .select('strategy,active,expires_at')
+          .ilike('email', email),
+        'Access plan check'
+      );
 
       // Backward-compatible: if the entitlements table isn't deployed yet, don't lock users out.
       if (error) {
@@ -361,7 +408,7 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
   }
 
   if (!session) {
-    return <Login />;
+    return <Login initialNotice={bootstrapError} />;
   }
 
   if (approvalLoading) {
@@ -369,6 +416,21 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
       <div className="min-h-screen flex items-center justify-center gi-muted">
         Checking access…
       </div>
+    );
+  }
+
+  if (approvalError && approved === false) {
+    return (
+      <AuthRecovery
+        title="We couldn't verify your approval"
+        description="Your session was restored, but the approval check did not finish cleanly. Retry the check or sign in again."
+        error={approvalError}
+        onRetry={() => checkApproval(session)}
+        onSignOut={async () => {
+          if (!supabase) return;
+          await supabase.auth.signOut();
+        }}
+      />
     );
   }
 
@@ -404,8 +466,7 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
       }
 
       // One-time bypass check per signed-in session.
-      if (mfaBypass === null && !mfaBypassLoading) {
-        checkMfaBypass(session);
+      if (mfaBypass === null) {
         return (
           <div className="min-h-screen flex items-center justify-center gi-muted">
             Checking security…{'\u00A0'}(MFA Bypass)
@@ -441,6 +502,21 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
     );
   }
 
+  if (accessError && access.allowedStrategies.length === 0) {
+    return (
+      <AuthRecovery
+        title="We couldn't verify your access plan"
+        description="The dashboard could not confirm your current entitlements. Retry the check or sign in again."
+        error={accessError}
+        onRetry={() => checkEntitlements(session)}
+        onSignOut={async () => {
+          if (!supabase) return;
+          await supabase.auth.signOut();
+        }}
+      />
+    );
+  }
+
   if (access.allowedStrategies.length === 0) {
     return (
       <TrialExpired
@@ -459,12 +535,12 @@ const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
   return <>{children({ session, access })}</>;
 };
 
-const Login: React.FC = () => {
+const Login: React.FC<{ initialNotice?: string | null }> = ({ initialNotice }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialNotice ?? null);
   const [message, setMessage] = useState<string | null>(null);
   const emailId = useId();
   const passwordId = useId();
@@ -629,6 +705,36 @@ const Login: React.FC = () => {
             Magic links require your Supabase Auth redirect URLs to include{' '}
             <span className="font-mono text-white/80">{window.location.origin}</span>.
           </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const AuthRecovery: React.FC<{
+  title: string;
+  description: string;
+  error: string | null;
+  onRetry: () => void | Promise<void>;
+  onSignOut: () => void | Promise<void>;
+}> = ({ title, description, error, onRetry, onSignOut }) => {
+  return (
+    <div className="min-h-screen flex items-center justify-center px-6">
+      <div className="w-full max-w-lg gi-card p-8">
+        <h1 className="text-xl font-bold gi-serif">{title}</h1>
+        <p className="mt-2 text-sm gi-muted">{description}</p>
+        {error && (
+          <div className="mt-4 text-sm gi-card border border-red-500/30 text-red-100 rounded-xl px-3 py-2">
+            {error}
+          </div>
+        )}
+        <div className="mt-6 flex gap-3">
+          <button type="button" onClick={onRetry} className="flex-1 gi-btn gi-btn-primary font-semibold py-2.5">
+            Retry
+          </button>
+          <button type="button" onClick={onSignOut} className="flex-1 gi-btn gi-btn-secondary font-semibold py-2.5">
+            Sign Out
+          </button>
         </div>
       </div>
     </div>
