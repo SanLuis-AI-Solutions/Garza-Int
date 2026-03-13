@@ -2,11 +2,14 @@ name: Admin Approvals Alert
 
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: "0 * * * *"
   workflow_dispatch: {}
 
 permissions:
   contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 concurrency:
   group: admin-approvals-alert
@@ -15,7 +18,7 @@ concurrency:
 jobs:
   alert-check:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     env:
       CANARY_SUPABASE_URL: ${{ secrets.CANARY_SUPABASE_URL }}
       CANARY_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.CANARY_SUPABASE_SERVICE_ROLE_KEY }}
@@ -26,28 +29,32 @@ jobs:
       ADMIN_APPROVALS_ALERT_WEBHOOK_URL: ${{ secrets.ADMIN_APPROVALS_ALERT_WEBHOOK_URL }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
 
       - name: Check required secrets
+        id: gate
         shell: bash
         run: |
           if [[ -z "${CANARY_SUPABASE_URL}" || -z "${CANARY_SUPABASE_SERVICE_ROLE_KEY}" ]]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
             echo "Alert check skipped: set CANARY_SUPABASE_URL and CANARY_SUPABASE_SERVICE_ROLE_KEY."
-            exit 0
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Run admin approvals error-threshold check
+        if: steps.gate.outputs.run == 'true'
         id: check
         shell: bash
         run: node ./scripts/check-admin-approvals-error-rate.mjs
 
       - name: Send webhook on threshold breach
-        if: failure() && env.ADMIN_APPROVALS_ALERT_WEBHOOK_URL != ''
+        if: failure() && steps.gate.outputs.run == 'true' && env.ADMIN_APPROVALS_ALERT_WEBHOOK_URL != ''
         shell: bash
         run: |
           payload=$(cat <<'JSON'

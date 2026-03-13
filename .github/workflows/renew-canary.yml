@@ -8,6 +8,9 @@ on:
 permissions:
   contents: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 concurrency:
   group: renew-canary
   cancel-in-progress: true
@@ -15,7 +18,7 @@ concurrency:
 jobs:
   renew-canary:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
     env:
       E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
       E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
@@ -28,10 +31,10 @@ jobs:
       CANARY_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.CANARY_SUPABASE_SERVICE_ROLE_KEY }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: npm
